@@ -18,18 +18,17 @@ public class Email {
      */
     private String subject;
     /**
-     * HTML e-mail template
+     * HTML e-mail body
      */
-    private EmailTemplate template;
+    private String body;
 
-    public Email() {
-    }
+    public Email() {}
 
-    public Email(String to, String copyTo, String subject, EmailTemplate template) {
+    public Email(String to, String copyTo, String subject, String body) {
         this.to = to;
         this.copyTo = copyTo;
         this.subject = subject;
-        this.template = template;
+        this.body = body;
     }
 
     public String getTo() {
@@ -56,11 +55,11 @@ public class Email {
         this.subject = subject;
     }
 
-    public EmailTemplate getTemplate() {
-        return template;
+    public String getBody() {
+        return body;
     }
 
-    public void setTemplate(EmailTemplate template) {
-        this.template = template;
+    public void setBody(String body) {
+        this.body = body;
     }
 }
