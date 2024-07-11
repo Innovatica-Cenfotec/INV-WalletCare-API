@@ -9,7 +9,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
-import java.io.FileNotFoundException;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Map;
 
 @Service
@@ -20,14 +22,17 @@ public class EmailSenderService {
     @Autowired
     private JavaMailSender mailSender;
 
-    @Autowired
-    private EmailTemplateRepository emailTemplateRepository;
+
     /**
      * Address used for sending e-mails
      */
     @Value("${spring.mail.username}")
     private String toBaseEmail;
 
+    /**
+     * Path to the HTML Templates
+     */
+    private final String PATH_TO_TEMPLATES = "src/main/resources/templates/";
 
     /**
      * This method get's ready the email to be sended
@@ -37,13 +42,8 @@ public class EmailSenderService {
      * @throws Exception
      */
     public void sendEmail(Email email, String templateName, Map<String, String> params) throws Exception{
-
-        var template = emailTemplateRepository.findByName(templateName);
-        if(template.isEmpty()){
-            throw new FileNotFoundException("Email Template could not be found.");
-        }
-
-        String emailBody = tokenReplacement(template.get().getTemplate(), params);
+        var template = getTemplate(templateName);
+        String emailBody = tokenReplacement(template, params);
         email.setBody(emailBody);
         sender(email);
     }
@@ -55,7 +55,7 @@ public class EmailSenderService {
      * @return returns the final HTML that will be the email body
      */
     private String tokenReplacement(String template, Map<String, String> params){
-        return StringSubstitutor.replace(template, params, "${", "}");
+        return StringSubstitutor.replace(template, params, "{{", "}}");
     }
 
     /**
@@ -70,6 +70,17 @@ public class EmailSenderService {
         message.setSubject(email.getSubject());
         message.setContent(email.getBody(), "text/html; charset=utf-8");
         mailSender.send(message);
+    }
+
+    private String getTemplate(String templateName) throws Exception {
+
+        String templatePath = PATH_TO_TEMPLATES+templateName+".html";
+        File file = new File(templatePath);
+        if(!file.exists()){
+            throw new Exception("Email Template could not be found.");
+        }
+
+        return Files.readString(Paths.get(templatePath));
     }
 
 }
