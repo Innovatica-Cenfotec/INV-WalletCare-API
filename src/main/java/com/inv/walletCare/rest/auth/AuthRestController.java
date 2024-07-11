@@ -8,6 +8,7 @@ import com.inv.walletCare.logic.entity.auth.AuthenticationService;
 import com.inv.walletCare.logic.entity.auth.JwtService;
 import com.inv.walletCare.logic.entity.user.LoginResponse;
 import com.inv.walletCare.logic.entity.user.User;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -70,6 +71,18 @@ public class AuthRestController {
         user.setRole(optionalRole.get());
         User savedUser = userRepository.save(user);
         return ResponseEntity.ok(savedUser);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String jwtToken = authHeader.substring(7);
+            jwtService.invalidateToken(jwtToken);
+        }
+
+        return ResponseEntity.ok().build();
     }
 
 }
