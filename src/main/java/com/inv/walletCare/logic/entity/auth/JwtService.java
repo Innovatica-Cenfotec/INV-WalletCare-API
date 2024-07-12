@@ -1,6 +1,5 @@
 package com.inv.walletCare.logic.entity.auth;
 
-import com.inv.walletCare.logic.entity.auth.encryption.EncryptionService;
 import com.inv.walletCare.logic.entity.auth.invalidate.InvalidateToken;
 import com.inv.walletCare.logic.entity.auth.invalidate.InvalidateTokenRepository;
 import io.jsonwebtoken.Claims;
@@ -31,12 +30,8 @@ public class JwtService {
     @Autowired
     private InvalidateTokenRepository invalidateTokenRepository;
 
-    @Autowired
-    private EncryptionService encryptionService;
-
     public String extractUsername(String token) {
-        String encryptedUsername = extractClaim(token, Claims::getSubject);
-        return encryptionService.decrypt(encryptedUsername);
+        return extractClaim(token, Claims::getSubject);
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
@@ -61,11 +56,10 @@ public class JwtService {
             UserDetails userDetails,
             long expiration
     ) {
-        String encryptedUsername = encryptionService.encrypt(userDetails.getUsername());
         return Jwts
                 .builder()
                 .setClaims(extraClaims)
-                .setSubject(encryptedUsername)
+                .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)

@@ -1,6 +1,5 @@
 package com.inv.walletCare.rest.auth;
 
-import com.inv.walletCare.logic.entity.auth.encryption.EncryptionService;
 import com.inv.walletCare.logic.entity.rol.Role;
 import com.inv.walletCare.logic.entity.rol.RoleEnum;
 import com.inv.walletCare.logic.entity.rol.RoleRepository;
@@ -34,9 +33,6 @@ public class AuthRestController {
     @Autowired
     private RoleRepository roleRepository;
 
-    @Autowired
-    private EncryptionService encryptionService;
-
     private final AuthenticationService authenticationService;
     private final JwtService jwtService;
 
@@ -47,8 +43,6 @@ public class AuthRestController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> authenticate(@RequestBody User user) {
-        user.setEmail(encryptionService.encrypt(user.getEmail()));
-
         User authenticatedUser = authenticationService.authenticate(user);
 
         String jwtToken = jwtService.generateToken(authenticatedUser);
@@ -67,7 +61,6 @@ public class AuthRestController {
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setEmail(encryptionService.encrypt(user.getEmail()));
 
         Optional<Role> optionalRole = roleRepository.findByName(RoleEnum.USER);
 
