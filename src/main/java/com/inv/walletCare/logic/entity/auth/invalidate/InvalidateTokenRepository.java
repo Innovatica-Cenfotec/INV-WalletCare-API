@@ -1,4 +1,4 @@
-package com.inv.walletCare.logic.entity.auth;
+package com.inv.walletCare.logic.entity.auth.invalidate;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

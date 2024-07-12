@@ -1,4 +1,4 @@
-package com.inv.walletCare.logic.entity.auth;
+package com.inv.walletCare.logic.entity.auth.invalidate;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

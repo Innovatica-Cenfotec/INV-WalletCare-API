@@ -1,5 +1,6 @@
 package com.inv.walletCare.logic.entity.auth;
 
+import com.inv.walletCare.logic.entity.auth.encryption.EncryptionService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,14 +25,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
+    private final EncryptionService encryptionService;
+
     public JwtAuthenticationFilter(
             JwtService jwtService,
             UserDetailsService userDetailsService,
-            HandlerExceptionResolver handlerExceptionResolver
+            HandlerExceptionResolver handlerExceptionResolver,
+            EncryptionService encryptionService
     ) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
         this.handlerExceptionResolver = handlerExceptionResolver;
+        this.encryptionService = encryptionService;
     }
 
     @Override
@@ -49,7 +54,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             final String jwt = authHeader.substring(7);
-            final String userEmail = jwtService.extractUsername(jwt);
+            final String encryptedEmail = jwtService.extractUsername(jwt);
+            final String userEmail = encryptionService.decrypt(encryptedEmail);
 
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
