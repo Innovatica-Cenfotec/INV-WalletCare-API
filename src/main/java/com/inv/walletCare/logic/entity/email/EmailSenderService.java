@@ -35,7 +35,7 @@ public class EmailSenderService {
     private final String PATH_TO_TEMPLATES = "src/main/resources/templates/";
 
     /**
-     * This method get's ready the email to be sended
+     * This method gets ready the email to be sent
      * @param email it's all the email configuration
      * @param templateName it's the template's name in the database
      * @param params  are the keys in the HTML Template with its values
@@ -72,6 +72,12 @@ public class EmailSenderService {
         mailSender.send(message);
     }
 
+    /**
+     *
+     * @param templateName
+     * @return
+     * @throws Exception
+     */
     private String getTemplate(String templateName) throws Exception {
 
         String templatePath = PATH_TO_TEMPLATES+templateName+".html";
