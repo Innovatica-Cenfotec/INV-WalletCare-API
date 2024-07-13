@@ -10,10 +10,15 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
 
+/**
+ * @author Jason Cruz
+ * Class designed to send emails
+ */
 @Service
 public class EmailSenderService {
     /**
@@ -39,9 +44,11 @@ public class EmailSenderService {
      * @param email it's all the email configuration
      * @param templateName it's the template's name in the database
      * @param params  are the keys in the HTML Template with its values
-     * @throws Exception
+     * @throws Exception can throw two exceptions
+     *  1. The email template name is not found
+     *  2. The email can't be sent
      */
-    public void sendEmail(Email email, String templateName, Map<String, String> params) throws Exception{
+    public void sendEmail(Email email, String templateName, Map<String, String> params) throws Exception {
         var template = getTemplate(templateName);
         String emailBody = tokenReplacement(template, params);
         email.setBody(emailBody);
@@ -61,7 +68,7 @@ public class EmailSenderService {
     /**
      * This method send the emails
      * @param email Information required for sending the e-mail
-     * @throws MessagingException
+     * @throws MessagingException the exception is thrown if the email could not be sent
      */
     private void sender(Email email) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
@@ -73,17 +80,17 @@ public class EmailSenderService {
     }
 
     /**
-     *
-     * @param templateName
-     * @return
-     * @throws Exception
+     * This method gets the email template from the templates folder
+     * @param templateName is the html template name
+     * @return returns the HTML template
+     * @throws Exception the exception is thrown only if the template name not exists in the templates folder
      */
     private String getTemplate(String templateName) throws Exception {
 
         String templatePath = PATH_TO_TEMPLATES+templateName+".html";
         File file = new File(templatePath);
         if(!file.exists()){
-            throw new Exception("Email Template could not be found.");
+            throw new FileNotFoundException("Email Template could not be found.");
         }
 
         return Files.readString(Paths.get(templatePath));
