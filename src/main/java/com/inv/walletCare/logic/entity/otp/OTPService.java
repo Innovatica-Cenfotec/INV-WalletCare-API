@@ -16,7 +16,7 @@ import java.util.UUID;
  * @author Jason Cruz
  */
 @Service
-public class OTPService implements ApplicationListener<ContextRefreshedEvent> {
+public class OTPService {
     /**
      * Used to get users info and save changes
      */
@@ -51,19 +51,5 @@ public class OTPService implements ApplicationListener<ContextRefreshedEvent> {
             return userRepository.save(existingUser);
         });
         return otp;
-    }
-
-    @Override
-    public void onApplicationEvent(ContextRefreshedEvent event) {
-        User user = new User();
-        user.setName("Super");
-        user.setLastname("Admin");
-        user.setEmail("super.admin@gmail.com");
-        user.setPassword("superadmin123");
-        try {
-            this.generateOTP(user);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 }
