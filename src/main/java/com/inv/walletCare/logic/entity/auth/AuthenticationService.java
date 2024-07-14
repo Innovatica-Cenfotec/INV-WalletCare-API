@@ -15,6 +15,7 @@ public class AuthenticationService {
 
     private final AuthenticationManager authenticationManager;
 
+
     public AuthenticationService(
             UserRepository userRepository,
             AuthenticationManager authenticationManager,
@@ -27,14 +28,13 @@ public class AuthenticationService {
 
 
     public User authenticate(User input) {
+
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         input.getEmail(),
                         input.getPassword()
                 )
         );
-
-        return userRepository.findByEmail(input.getEmail())
-                .orElseThrow();
+        return userRepository.findByEmail(input.getEmail()).orElseThrow();
     }
 }

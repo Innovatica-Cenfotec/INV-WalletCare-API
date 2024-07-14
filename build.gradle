@@ -21,6 +21,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'com.github.ulisesbocchio:jasypt-spring-boot-starter:3.0.3'
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
+	implementation 'org.apache.commons:commons-text:1.12.0'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -52,4 +54,8 @@ decryptProperties {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+test {
+	jvmArgs '-ea', '-XX:+EnableDynamicAgentLoading', '-Xshare:off'
 }
