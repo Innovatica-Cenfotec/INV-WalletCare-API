@@ -40,3 +40,7 @@ bootJar {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+test {
+	jvmArgs '-ea', '-XX:+EnableDynamicAgentLoading', '-Xshare:off'
+}
