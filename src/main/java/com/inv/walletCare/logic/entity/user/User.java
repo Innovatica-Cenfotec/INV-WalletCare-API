@@ -17,13 +17,24 @@ public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(length = 50)
     private String name;
+    @Column(length = 50)
     private String lastname;
+    @Column(length = 50)
+    private String alias;
+
     @Column(unique = true, length = 100, nullable = false)
     private String email;
 
+    @Column(length = 20, name = "identy_number")
+    private String identyNumber;
+    private String address;
+
     @Column(nullable = false)
     private String password;
+    @Column(name = "password_change_required")
+    private boolean passwordChangeRequired;
 
     @CreationTimestamp
     @Column(updatable = false, name = "created_at")
@@ -39,7 +50,7 @@ public class User implements UserDetails {
         return List.of(authority);
     }
 
-    @OneToOne(fetch = FetchType.EAGER)
+    @ManyToOne(cascade = CascadeType.REMOVE)
     @JoinColumn(name = "role_id", referencedColumnName = "id", nullable = false)
     private Role role;
 
@@ -96,12 +107,36 @@ public class User implements UserDetails {
         this.lastname = lastname;
     }
 
+    public String getAlias() {
+        return alias;
+    }
+
+    public void setAlias(String alias) {
+        this.alias = alias;
+    }
+
     public String getEmail() {
         return email;
     }
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getIdentyNumber() {
+        return identyNumber;
+    }
+
+    public void setIdentyNumber(String identyNumber) {
+        this.identyNumber = identyNumber;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
     }
 
     @Override
@@ -111,6 +146,14 @@ public class User implements UserDetails {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public boolean isPasswordChangeRequired() {
+        return passwordChangeRequired;
+    }
+
+    public void setPasswordChangeRequired(boolean passwordChangeRequired) {
+        this.passwordChangeRequired = passwordChangeRequired;
     }
 
     public Date getCreatedAt() {

@@ -10,8 +10,8 @@ import java.util.Optional;
 
 @Component
 public class RoleSeeder implements ApplicationListener<ContextRefreshedEvent> {
-    private final RoleRepository roleRepository;
 
+    private final RoleRepository roleRepository;
 
     public RoleSeeder(RoleRepository roleRepository) {
         this.roleRepository = roleRepository;
