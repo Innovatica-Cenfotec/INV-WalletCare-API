@@ -72,16 +72,4 @@ public class AuthRestController {
         return ResponseEntity.ok(savedUser);
     }
 
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String jwtToken = authHeader.substring(7);
-            jwtService.invalidateToken(jwtToken);
-        }
-
-        return ResponseEntity.ok().build();
-    }
-
 }

@@ -1,4 +1,4 @@
-package com.inv.walletCare.logic.entity.auth.encryption;
+package com.inv.walletCare.logic.entity.auth;
 
 import org.springframework.stereotype.Service;
 

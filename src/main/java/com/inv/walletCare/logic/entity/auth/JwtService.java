@@ -1,18 +1,14 @@
 package com.inv.walletCare.logic.entity.auth;
 
-import com.inv.walletCare.logic.entity.auth.invalidate.InvalidateToken;
-import com.inv.walletCare.logic.entity.auth.invalidate.InvalidateTokenRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import java.security.Key;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -24,11 +20,6 @@ public class JwtService {
 
     @Value("${security.jwt.expiration-time}")
     private long jwtExpiration;
-
-    private Set<String> invalidTokens = new HashSet<>();
-
-    @Autowired
-    private InvalidateTokenRepository invalidateTokenRepository;
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -68,7 +59,7 @@ public class JwtService {
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token) && !isTokenInvalidated(token);
+        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
     }
 
     private boolean isTokenExpired(String token) {
@@ -91,16 +82,5 @@ public class JwtService {
     private Key getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
-    }
-
-    public void invalidateToken(String token) {
-        InvalidateToken invalidateToken = new InvalidateToken();
-        invalidateToken.setToken(token);
-        invalidateToken.setInvalidateAt(LocalDateTime.now());
-        invalidateTokenRepository.save(invalidateToken);
-    }
-
-    private boolean isTokenInvalidated(String token) {
-        return invalidateTokenRepository.findById(token).isPresent();
     }
 }
