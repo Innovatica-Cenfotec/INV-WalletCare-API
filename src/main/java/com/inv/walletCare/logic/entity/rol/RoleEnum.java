@@ -2,5 +2,6 @@ package com.inv.walletCare.logic.entity.rol;
 
 public enum RoleEnum {
     USER,
-    ADMIN
+    ADMIN,
+    SUPER_ADMIN
 }
