@@ -19,6 +19,7 @@ public class User implements UserDetails {
     private Long id;
     private String name;
     private String lastname;
+    private String otp;
     @Column(unique = true, length = 100, nullable = false)
     private String email;
 
@@ -104,6 +105,15 @@ public class User implements UserDetails {
         this.email = email;
     }
 
+    public String getOtp() {
+        return otp;
+    }
+
+    public void setOtp(String otp) {
+        this.otp = otp;
+    }
+
+
     @Override
     public String getPassword() {
         return password;
@@ -132,6 +142,7 @@ public class User implements UserDetails {
     public Role getRole() {
         return role;
     }
+
 
     public User setRole(Role role) {
         this.role = role;
