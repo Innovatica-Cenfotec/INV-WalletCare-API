@@ -1,4 +1,5 @@
 package com.inv.walletCare.logic.entity.user;
+
 import com.inv.walletCare.logic.entity.rol.Role;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -17,13 +18,25 @@ public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(length = 50)
     private String name;
+    @Column(length = 50)
     private String lastname;
+
+    @Column(unique = true, length = 50, nullable = false)
+    private String nickname;
+
     @Column(unique = true, length = 100, nullable = false)
     private String email;
 
+    @Column(length = 20, name = "identification_number")
+    private String identificationNumber;
+    private String address;
+
     @Column(nullable = false)
     private String password;
+    @Column(name = "password_change_required")
+    private boolean passwordChangeRequired;
 
     @CreationTimestamp
     @Column(updatable = false, name = "created_at")
@@ -39,13 +52,12 @@ public class User implements UserDetails {
         return List.of(authority);
     }
 
-    @OneToOne(fetch = FetchType.EAGER)
+    @ManyToOne(cascade = CascadeType.REMOVE)
     @JoinColumn(name = "role_id", referencedColumnName = "id", nullable = false)
     private Role role;
 
     // Constructors
     public User() {}
-
 
     @Override
     public boolean isAccountNonExpired() {
@@ -96,12 +108,36 @@ public class User implements UserDetails {
         this.lastname = lastname;
     }
 
+    public String getNickname() {
+        return nickname;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
     public String getEmail() {
         return email;
     }
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getIdentificationNumber() {
+        return identificationNumber;
+    }
+
+    public void setIdentificationNumber(String identificationNumber) {
+        this.identificationNumber = identificationNumber;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
     }
 
     @Override
@@ -111,6 +147,14 @@ public class User implements UserDetails {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public boolean isPasswordChangeRequired() {
+        return passwordChangeRequired;
+    }
+
+    public void setPasswordChangeRequired(boolean passwordChangeRequired) {
+        this.passwordChangeRequired = passwordChangeRequired;
     }
 
     public Date getCreatedAt() {

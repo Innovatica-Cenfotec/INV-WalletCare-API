@@ -37,6 +37,8 @@ public class AdminSeeder implements ApplicationListener<ContextRefreshedEvent> {
         User superAdmin = new User();
         superAdmin.setName("Administrator");
         superAdmin.setLastname("WalletCare");
+        superAdmin.setNickname("Mr.Administrator");
+        superAdmin.setIdentificationNumber("120647134");
         superAdmin.setEmail("admin@walletcare.com");
         superAdmin.setPassword("walletcare123");
 
@@ -50,6 +52,8 @@ public class AdminSeeder implements ApplicationListener<ContextRefreshedEvent> {
         var user = new User();
         user.setName(superAdmin.getName());
         user.setLastname(superAdmin.getLastname());
+        user.setNickname(superAdmin.getNickname());
+        user.setIdentificationNumber(superAdmin.getIdentificationNumber());
         user.setEmail(superAdmin.getEmail());
         user.setPassword(passwordEncoder.encode(superAdmin.getPassword()));
         user.setRole(optionalRole.get());

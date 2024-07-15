@@ -1,4 +1,4 @@
-package com.inv.walletCare;
+package com.inv.walletCare.datasource;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,7 +9,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import java.util.Map;
 
 @SpringBootTest
-public class DecyptConnTest {
+public class DatasourceAuthTest {
 
     @Value("${spring.datasource.password}")
     private String mariaPassword;
@@ -26,10 +26,10 @@ public class DecyptConnTest {
 
     @DynamicPropertySource
     static void dynamicProperties(DynamicPropertyRegistry registry) {
-        registry.add("jasypt.encryptor.password", () -> "my-secret-password");
+        registry.add("jasypt.encryptor.password", () -> "innova");
         registry.add("spring.datasource.url", () -> "jdbc:mariadb://localhost:3306/walletcare");
-        registry.add("jasypt.encryptor.property.prefix", () -> "[[[[[");
-        registry.add("jasypt.encryptor.property.suffix", () -> "]]]]]");
+        registry.add("spring.datasource.username", () -> "innovatica");
+        registry.add("spring.datasource.password", () -> "1nn0v4t1c4");
     }
 
     @Test
