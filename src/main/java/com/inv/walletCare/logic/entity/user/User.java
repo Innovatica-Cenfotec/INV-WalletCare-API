@@ -1,4 +1,5 @@
 package com.inv.walletCare.logic.entity.user;
+
 import com.inv.walletCare.logic.entity.rol.Role;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -21,14 +22,15 @@ public class User implements UserDetails {
     private String name;
     @Column(length = 50)
     private String lastname;
-    @Column(length = 50)
-    private String alias;
+
+    @Column(unique = true, length = 50, nullable = false)
+    private String nickname;
 
     @Column(unique = true, length = 100, nullable = false)
     private String email;
 
-    @Column(length = 20, name = "identy_number")
-    private String identyNumber;
+    @Column(length = 20, name = "identification_number")
+    private String identificationNumber;
     private String address;
 
     @Column(nullable = false)
@@ -56,7 +58,6 @@ public class User implements UserDetails {
 
     // Constructors
     public User() {}
-
 
     @Override
     public boolean isAccountNonExpired() {
@@ -107,12 +108,12 @@ public class User implements UserDetails {
         this.lastname = lastname;
     }
 
-    public String getAlias() {
-        return alias;
+    public String getNickname() {
+        return nickname;
     }
 
-    public void setAlias(String alias) {
-        this.alias = alias;
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
     }
 
     public String getEmail() {
@@ -123,12 +124,12 @@ public class User implements UserDetails {
         this.email = email;
     }
 
-    public String getIdentyNumber() {
-        return identyNumber;
+    public String getIdentificationNumber() {
+        return identificationNumber;
     }
 
-    public void setIdentyNumber(String identyNumber) {
-        this.identyNumber = identyNumber;
+    public void setIdentificationNumber(String identificationNumber) {
+        this.identificationNumber = identificationNumber;
     }
 
     public String getAddress() {
