@@ -8,6 +8,7 @@ import com.inv.walletCare.logic.entity.auth.AuthenticationService;
 import com.inv.walletCare.logic.entity.auth.JwtService;
 import com.inv.walletCare.logic.entity.user.LoginResponse;
 import com.inv.walletCare.logic.entity.user.User;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -99,6 +100,7 @@ public class AuthRestController {
         }
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+
         Optional<Role> optionalRole = roleRepository.findByName(RoleEnum.USER);
         if (optionalRole.isEmpty()) {
             throw new IllegalStateException("Default role USER not found");
