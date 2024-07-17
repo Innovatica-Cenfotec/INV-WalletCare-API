@@ -1,5 +1,8 @@
 package com.inv.walletCare.rest.auth;
 
+import com.inv.walletCare.logic.entity.account.Account;
+import com.inv.walletCare.logic.entity.account.AccountRepository;
+import com.inv.walletCare.logic.entity.account.AccountTypeEnum;
 import com.inv.walletCare.logic.entity.rol.Role;
 import com.inv.walletCare.logic.entity.rol.RoleEnum;
 import com.inv.walletCare.logic.entity.rol.RoleRepository;
@@ -8,16 +11,14 @@ import com.inv.walletCare.logic.entity.auth.AuthenticationService;
 import com.inv.walletCare.logic.entity.auth.JwtService;
 import com.inv.walletCare.logic.entity.user.LoginResponse;
 import com.inv.walletCare.logic.entity.user.User;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.util.Date;
 import java.util.Optional;
 
 /**
@@ -29,6 +30,9 @@ public class AuthRestController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private AccountRepository accountRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -82,10 +86,15 @@ public class AuthRestController {
      * Registers a new user with email and password, assigning them a default role.
      *
      * @param user the user to register
+     * @param accountName the name of account the user wants to create
+     * @param accountDescription the description of account the user wants to create
      * @return ResponseEntity containing the saved user
      */
     @PostMapping("/signup")
-    public ResponseEntity<?> registerUser(@RequestBody User user) {
+    @Transactional
+    public ResponseEntity<?> registerUser(@RequestBody User user,
+                                          @RequestParam String accountName,
+                                          @RequestParam String accountDescription) {
         // Validate the user's input
         if (user.getEmail() == null || user.getEmail().isEmpty()) {
             throw new IllegalArgumentException("Email is required");
@@ -108,6 +117,20 @@ public class AuthRestController {
 
         user.setRole(optionalRole.get());
         User savedUser = userRepository.save(user);
+
+        // Create a new account for the user
+        Account newAccount = new Account();
+        newAccount.setName(accountName);
+        newAccount.setDescription(accountDescription);
+        newAccount.setOwner(savedUser);
+        newAccount.setType(AccountTypeEnum.PERSONAL); // Set your default account type here
+        newAccount.setBalance(BigDecimal.ZERO);
+        newAccount.setCreatedAt(new Date());
+        newAccount.setUpdatedAt(new Date());
+        newAccount.setDeleted(false);
+
+        accountRepository.save(newAccount);
+
         return ResponseEntity.ok(savedUser);
     }
 }
