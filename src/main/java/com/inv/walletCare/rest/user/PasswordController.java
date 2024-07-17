@@ -3,6 +3,7 @@ package com.inv.walletCare.rest.user;
 import com.inv.walletCare.logic.entity.email.Email;
 import com.inv.walletCare.logic.entity.email.EmailSenderService;
 import com.inv.walletCare.logic.entity.otp.OTPService;
+import com.inv.walletCare.logic.entity.user.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,14 +19,18 @@ public class PasswordController {
     @Autowired
     private EmailSenderService emailSenderService;
 
+    @Autowired
+    private com.inv.walletCare.logic.entity.user.UserRepository UserRepository;
+
     @PostMapping("/forgot")
-    public String forgotPassword(@RequestBody Email email)throws Exception{
-        String otp = otpService.generateOTP(email.getTo());
+    public String forgotPassword(@RequestBody String email)throws Exception{
+        String otp = otpService.generateOTP(email);
 
         Email emailDetails = new Email();
-        emailDetails.setTo(email.getTo());
+        emailDetails.setTo(email);
         emailDetails.setSubject("Your OTP Code");
         Map<String, String> params = new HashMap<>();
+        params.put("name",email);
         params.put("otp", otp);
 
         emailSenderService.sendEmail(emailDetails, "ForgotPassword", params);
