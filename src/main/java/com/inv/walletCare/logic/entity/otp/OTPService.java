@@ -18,21 +18,7 @@ public class OTPService {
     public OTPService(PasswordEncoder psEncoder) {
         this.psEncoder = psEncoder;
     }
-
-    /*public String generateOTP(User user) throws Exception{
-        String rndString = UUID.randomUUID().toString().replace("_", "");
-        String otp = rndString.substring(0, 8);
-        var userFound = userRepository.findByEmail(user.getEmail());
-
-        if(userFound.isEmpty()){
-            throw new Exception("User Email not found");
-        }
-        user.setPassword(psEncoder.encode(otp));
-
-        //userRepository.save(user);
-
-        return otp;
-    }*/
+    
     public String generateOTP(String email) throws Exception{
         String rndString = UUID.randomUUID().toString().replace("-", "");
         String otp = rndString.substring(0, 8);
