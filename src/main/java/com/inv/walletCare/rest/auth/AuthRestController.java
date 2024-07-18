@@ -105,7 +105,12 @@ public class AuthRestController {
 
         Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
         if (existingUser.isPresent()) {
-            throw new IllegalArgumentException("Email is already in use");
+            throw new IllegalArgumentException("Ya existe una cuenta con este correo.");
+        }
+
+        existingUser = userRepository.findByNickname(user.getNickname());
+        if (existingUser.isPresent()) {
+            throw new IllegalArgumentException("Ya existe una cuenta con este alias.");
         }
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
