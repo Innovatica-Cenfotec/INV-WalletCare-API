@@ -58,6 +58,11 @@ public class AccountRestController {
         return accountRepository.save(newAccount);
     }
 
+    /**
+     * Retrieves a list of {@link Account} objects associated with the currently authenticated user.
+     * @return a {@link List} of {@link Account} objects belonging to the currently authenticated user.
+     * If no accounts are found, an empty list will be returned.
+     */
     @GetMapping
     public List<Account> getAccountsbyOwner(){
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
