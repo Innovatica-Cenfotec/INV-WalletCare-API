@@ -97,22 +97,27 @@ public class AuthRestController {
                                           @RequestParam String accountDescription) {
         // Validate the user's input
         if (user.getEmail() == null || user.getEmail().isEmpty()) {
-            throw new IllegalArgumentException("Email is required");
+            throw new IllegalArgumentException("El correo electrónico no puede estar vacío");
         }
         if (user.getPassword() == null || user.getPassword().isEmpty()) {
-            throw new IllegalArgumentException("Password is required");
+            throw new IllegalArgumentException("La contraseña no puede estar vacía");
         }
 
         Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
         if (existingUser.isPresent()) {
-            throw new IllegalArgumentException("Email is already in use");
+            throw new IllegalArgumentException("Ya existe una cuenta con este correo.");
+        }
+
+        existingUser = userRepository.findByNickname(user.getNickname());
+        if (existingUser.isPresent()) {
+            throw new IllegalArgumentException("Ya existe una cuenta con este alias.");
         }
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
         Optional<Role> optionalRole = roleRepository.findByName(RoleEnum.USER);
         if (optionalRole.isEmpty()) {
-            throw new IllegalStateException("Default role USER not found");
+            throw new IllegalStateException("Rol por defecto USER no encontrado.");
         }
 
         user.setRole(optionalRole.get());
