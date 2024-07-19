@@ -16,6 +16,7 @@ import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.exceptions.FieldValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -133,6 +134,34 @@ public class AuthRestController {
         user.setPassword(passwordEncoder.encode(request.getUser().getPassword()));
         user.setCreatedAt(new Date());
         user.setUpdatedAt(new Date());
+
+    /**
+     * Registers a new user with email and password, assigning them a default role.
+     *
+     * @param user the user to register
+     * @return ResponseEntity containing the saved user
+     */
+    @PostMapping("/signup")
+    public ResponseEntity<?> registerUser(@RequestBody User user) {
+        // Validate the user's input
+        if (user.getEmail() == null || user.getEmail().isEmpty()) {
+            throw new IllegalArgumentException("Email is required");
+        }
+        if (user.getPassword() == null || user.getPassword().isEmpty()) {
+            throw new IllegalArgumentException("Password is required");
+        }
+
+        Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
+        if (existingUser.isPresent()) {
+            throw new IllegalArgumentException("Email is already in use");
+        }
+
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        Optional<Role> optionalRole = roleRepository.findByName(RoleEnum.USER);
+        if (optionalRole.isEmpty()) {
+            throw new IllegalStateException("Default role USER not found");
+        }
+
         user.setRole(optionalRole.get());
         userRepository.save(user);
 
