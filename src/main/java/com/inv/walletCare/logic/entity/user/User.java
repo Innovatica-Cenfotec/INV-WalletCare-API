@@ -26,6 +26,7 @@ public class User implements UserDetails {
     @Column(unique = true, length = 50, nullable = false)
     private String nickname;
 
+    private String otp;
     @Column(unique = true, length = 100, nullable = false)
     private String email;
 
@@ -142,6 +143,15 @@ public class User implements UserDetails {
         this.address = address;
     }
 
+    public String getOtp() {
+        return otp;
+    }
+
+    public void setOtp(String otp) {
+        this.otp = otp;
+    }
+
+
     @Override
     public String getPassword() {
         return password;
@@ -178,6 +188,7 @@ public class User implements UserDetails {
     public Role getRole() {
         return role;
     }
+
 
     public User setRole(Role role) {
         this.role = role;
