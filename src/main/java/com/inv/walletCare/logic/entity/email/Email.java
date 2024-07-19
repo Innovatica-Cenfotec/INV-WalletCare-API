@@ -2,10 +2,12 @@ package com.inv.walletCare.logic.entity.email;
 
 /**
  * Class designed to handle the information necessary for sending e-mails.
+ * @author Jason Cruz
  */
 public class Email {
     /**
      * Destination of the e-mail.
+     *
      */
     private String to;
 

@@ -1,19 +1,15 @@
 package com.inv.walletCare.logic.entity.email;
 
-import jdk.jfr.Name;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.mail.MailSender;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
@@ -24,6 +20,7 @@ class EmailSenderServiceTest {
 
     /**
      * Correct email configuration
+     *
      * @throws Exception
      */
     @Test
@@ -34,10 +31,10 @@ class EmailSenderServiceTest {
             mail.setTo("jscruzgz@gmail.com");
             mail.setSubject("Mail from unit test");
             Map<String, String> params = new HashMap<>();
-            params.put("Name","Jason Test");
-            params.put("OTP","789654123");
+            params.put("Name", "Jason Test");
+            params.put("OTP", "789654123");
             emailSenderService.sendEmail(mail, "ForgotPassword", params);
-        }catch (Exception e){
+        } catch (Exception e) {
             Assertions.fail();
         }
 
@@ -47,15 +44,15 @@ class EmailSenderServiceTest {
     @Test
     @DisplayName("Send wrong template")
     void sendEmail_WrongTemplate() {
-        try{
+        try {
             Email mail = new Email();
             mail.setTo("jscruzgz@gmail.com");
             mail.setSubject("Mail from unit test");
             Map<String, String> params = new HashMap<>();
-            params.put("Name","Jason Test");
-            params.put("OTP","789654123");
+            params.put("Name", "Jason Test");
+            params.put("OTP", "789654123");
             emailSenderService.sendEmail(mail, "ForgotPasswordd", params);
-        }catch (Exception e){
+        } catch (Exception e) {
             Assertions.assertTrue(true);
         }
 
