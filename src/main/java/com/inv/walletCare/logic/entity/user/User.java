@@ -31,6 +31,8 @@ public class User implements UserDetails {
 
     @Column(length = 20, name = "identification_number")
     private String identificationNumber;
+
+
     private String address;
 
     @Column(nullable = false)
