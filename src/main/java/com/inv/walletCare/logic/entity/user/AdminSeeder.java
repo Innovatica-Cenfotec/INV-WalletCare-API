@@ -1,8 +1,10 @@
-package com.inv.walletCare.logic.entity.rol;
+package com.inv.walletCare.logic.entity.user;
 
-import com.inv.walletCare.logic.entity.user.User;
-import com.inv.walletCare.logic.entity.user.UserRepository;
+import com.inv.walletCare.logic.entity.rol.Role;
+import com.inv.walletCare.logic.entity.rol.RoleEnum;
+import com.inv.walletCare.logic.entity.rol.RoleRepository;
 import org.springframework.context.ApplicationListener;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -10,12 +12,11 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 
 @Component
+@DependsOn("roleSeeder")
 public class AdminSeeder implements ApplicationListener<ContextRefreshedEvent> {
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
-
     private final PasswordEncoder passwordEncoder;
-
 
     public AdminSeeder(
             RoleRepository roleRepository,
@@ -29,17 +30,19 @@ public class AdminSeeder implements ApplicationListener<ContextRefreshedEvent> {
 
     @Override
     public void onApplicationEvent(ContextRefreshedEvent contextRefreshedEvent) {
-        this.createSuperAdministrator();
+        this.createAdministrator();
     }
 
-    private void createSuperAdministrator() {
+    private void createAdministrator() {
         User superAdmin = new User();
-        superAdmin.setName("Super");
-        superAdmin.setLastname("Admin");
-        superAdmin.setEmail("super.admin@gmail.com");
-        superAdmin.setPassword("superadmin123");
+        superAdmin.setName("Administrator");
+        superAdmin.setLastname("WalletCare");
+        superAdmin.setNickname("Mr.Administrator");
+        superAdmin.setIdentificationNumber("120647134");
+        superAdmin.setEmail("admin@walletcare.com");
+        superAdmin.setPassword("walletcare123");
 
-        Optional<Role> optionalRole = roleRepository.findByName(RoleEnum.SUPER_ADMIN);
+        Optional<Role> optionalRole = roleRepository.findByName(RoleEnum.ADMIN);
         Optional<User> optionalUser = userRepository.findByEmail(superAdmin.getEmail());
 
         if (optionalRole.isEmpty() || optionalUser.isPresent()) {
@@ -49,6 +52,8 @@ public class AdminSeeder implements ApplicationListener<ContextRefreshedEvent> {
         var user = new User();
         user.setName(superAdmin.getName());
         user.setLastname(superAdmin.getLastname());
+        user.setNickname(superAdmin.getNickname());
+        user.setIdentificationNumber(superAdmin.getIdentificationNumber());
         user.setEmail(superAdmin.getEmail());
         user.setPassword(passwordEncoder.encode(superAdmin.getPassword()));
         user.setRole(optionalRole.get());
