@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 /**
@@ -38,6 +40,14 @@ class EncryptionServiceTest {
         } catch (Exception e) {
             Assertions.fail("Encrypt and decrypt data failed with exception: " + e.getMessage());
         }
+    }
+
+    @DynamicPropertySource
+    static void dynamicProperties(DynamicPropertyRegistry registry) {
+        registry.add("jasypt.encryptor.password", () -> "innova");
+        registry.add("spring.datasource.url", () -> "jdbc:mariadb://localhost:3305/walletcare");
+        registry.add("spring.datasource.username", () -> "guillermo");
+        registry.add("spring.datasource.password", () -> "guillermo2024");
     }
 
     /**
