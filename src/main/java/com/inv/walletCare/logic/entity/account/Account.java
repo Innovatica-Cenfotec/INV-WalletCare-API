@@ -40,7 +40,7 @@ public class Account {
     /**
      * The user who owns the account. This is a many-to-one relationship as a user can own multiple accounts.
      */
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "owner_id", referencedColumnName = "id", nullable = false)
     private User owner;
 
