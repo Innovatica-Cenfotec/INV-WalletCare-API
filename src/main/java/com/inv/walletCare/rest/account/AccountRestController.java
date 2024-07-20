@@ -9,13 +9,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Controller for account-related operations.
@@ -58,5 +56,17 @@ public class AccountRestController {
         newAccount.setDeleted(false);
 
         return accountRepository.save(newAccount);
+    }
+
+    /**
+     * Retrieves a list of {@link Account} objects associated with the currently authenticated user.
+     * @return a {@link List} of {@link Account} objects belonging to the currently authenticated user.
+     * If no accounts are found, an empty list will be returned.
+     */
+    @GetMapping
+    public List<Account> getAccountsbyOwner(){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+        return accountRepository.findAllByOwnerId(currentUser.getId()).get();
     }
 }
