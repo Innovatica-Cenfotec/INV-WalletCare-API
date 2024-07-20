@@ -27,22 +27,13 @@ public class OTPService {
      * used to encode the new passwords
      */
     @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder psEncoder;
 
-    /**
-     * Method used to generate the OTP Password and save it in the database setting the user in password recovery mode
-     * @param user is the user information
-     * @return returns the OTP password
-     * @throws Exception is thrown in case the user email not exist
-     */
-    public String generateOTP(User user) throws Exception {
-
-        String otp = UUID.randomUUID().toString().replace("_", "").substring(0, 8);
 
     public OTPService(PasswordEncoder psEncoder) {
         this.psEncoder = psEncoder;
     }
-    
+
     public String generateOTP(String email) throws Exception{
         String rndString = UUID.randomUUID().toString().replace("-", "");
         String otp = rndString.substring(0, 8);
@@ -62,7 +53,7 @@ public class OTPService {
         }
         optionalUser.map(existingUser->{
             existingUser.setName(user.getEmail());
-            existingUser.setPassword(passwordEncoder.encode(otp));
+            existingUser.setPassword(psEncoder.encode(otp));
             existingUser.setEmail(user.getEmail());
             //existingUser.setPasswordChangeRequired(true);
             return userRepository.save(existingUser);
