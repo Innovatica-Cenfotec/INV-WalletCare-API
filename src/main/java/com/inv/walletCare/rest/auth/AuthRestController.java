@@ -4,6 +4,7 @@ import com.inv.walletCare.logic.entity.Response;
 import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.account.AccountRepository;
 import com.inv.walletCare.logic.entity.account.AccountTypeEnum;
+import com.inv.walletCare.logic.entity.account.AccountUser;
 import com.inv.walletCare.logic.entity.rol.Role;
 import com.inv.walletCare.logic.entity.rol.RoleEnum;
 import com.inv.walletCare.logic.entity.rol.RoleRepository;
@@ -147,6 +148,7 @@ public class AuthRestController {
         newAccount.setCreatedAt(new Date());
         newAccount.setUpdatedAt(new Date());
         newAccount.setDeleted(false);
+        newAccount.setDefault(true);
         accountRepository.save(newAccount);
 
         return ResponseEntity.ok(new Response("Usuario registrado exitosamente"));

@@ -82,6 +82,12 @@ public class Account {
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted;
 
+    /**
+     * A flag indicating whether the account is the default account for the user.
+     */
+    @Column(name = "is_default", nullable = false)
+    private boolean isDefault;
+
     public Boolean getDeleted() {
         return isDeleted;
     }
@@ -160,5 +166,13 @@ public class Account {
 
     public void setDeletedAt(Date deletedAt) {
         this.deletedAt = deletedAt;
+    }
+
+    public boolean isDefault() {
+        return isDefault;
+    }
+
+    public void setDefault(boolean aDefault) {
+        isDefault = aDefault;
     }
 }
