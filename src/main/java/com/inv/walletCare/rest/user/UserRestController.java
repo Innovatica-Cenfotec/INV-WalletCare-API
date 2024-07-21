@@ -10,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * REST controller for managing users in the WalletCare system.
@@ -67,6 +68,10 @@ public class UserRestController {
     @GetMapping("/filterByName/{name}")
     public List<User> getUserByName(@PathVariable String name) {
         return userRepository.findUsersWithCharacterInName(name);
+    }
+    @GetMapping("/{email}")
+    public Optional<User> getUserByEmail(@PathVariable String email){
+        return userRepository.findByEmail(email);
     }
 
     /**

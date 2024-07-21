@@ -2,9 +2,13 @@ package com.inv.walletCare.rest.account;
 
 import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.account.AccountRepository;
+import com.inv.walletCare.logic.entity.email.Email;
+import com.inv.walletCare.logic.entity.email.EmailSenderService;
 import com.inv.walletCare.logic.entity.user.User;
+import com.inv.walletCare.logic.entity.user.UserRepository;
 import com.inv.walletCare.logic.exceptions.FieldValidationException;
 import com.inv.walletCare.logic.validation.OnCreate;
+import com.inv.walletCare.rest.user.UserRestController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,7 +17,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Controller for account-related operations.
@@ -25,6 +31,11 @@ public class AccountRestController {
 
     @Autowired
     private AccountRepository accountRepository;
+
+    @Autowired
+    private UserRestController userRestController;
+    @Autowired
+    private EmailSenderService emailSenderService;
 
     /**
      * Creates a new account with the provided details.
@@ -69,4 +80,25 @@ public class AccountRestController {
         User currentUser = (User) authentication.getPrincipal();
         return accountRepository.findAllByOwnerId(currentUser.getId()).get();
     }
+    @PostMapping ("/inviteToSharedAccount")
+    public void inviteToSharedAccount(String inviteUser) throws Exception{
+        Authentication authentication=SecurityContextHolder.getContext().getAuthentication();
+        User currentUser= (User) authentication.getPrincipal();
+
+        if(userRestController.getUserByEmail(inviteUser).isEmpty()){
+            throw new Exception("El usuario que ha intentado invitar no existe");
+        }else{
+
+            Email emailDetails= new Email();
+            emailDetails.setTo(inviteUser);
+            emailDetails.setSubject("Invitación a Cuenta Compartida");
+            Map<String, String> params = new HashMap<>();
+            params.put("DueñoDeCuenta", currentUser.getEmail());
+            params.put("invitado", inviteUser);
+            emailSenderService.sendEmail(emailDetails, "InviteToShareAccount", params);
+        }
+
+
+    }
+
 }
