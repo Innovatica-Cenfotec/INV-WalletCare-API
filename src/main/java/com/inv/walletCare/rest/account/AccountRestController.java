@@ -121,7 +121,7 @@ public class AccountRestController {
         newAccount.setCreatedAt(new Date());
         newAccount.setUpdatedAt(new Date());
         newAccount.setDeleted(false);
-        newAccount.setDefault(account.isDefault());
+        newAccount.setDefault(false);
         return accountRepository.save(newAccount);
     }
 
@@ -142,7 +142,7 @@ public class AccountRestController {
         }
 
         if (account.get().isDefault()) {
-            throw new IllegalArgumentException("No se puede eliminar la cuenta predeterminada, cambie la cuenta predeterminada antes de eliminarla.");
+            throw new IllegalArgumentException("No se puede eliminar la cuenta predeterminada.");
         }
 
         if (account.get().getBalance().compareTo(BigDecimal.ZERO) != 0) {
@@ -164,7 +164,7 @@ public class AccountRestController {
      * @throws RuntimeException if the account with the specified ID is not found or not owned by the current user.
      */
     @PutMapping("/{id}")
-    public Account updateAccount(@Validated(OnUpdate.class) @RequestBody Long id, Account account) {
+    public Account updateAccount(@Validated(OnUpdate.class) @PathVariable Long id,@RequestBody Account account) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
 
@@ -173,23 +173,14 @@ public class AccountRestController {
             throw new IllegalArgumentException("La cuenta no se encontró o no pertenece al usuario actual.");
         }
 
-        // Change the default account to non-default if the new account is set as default
-        if (account.isDefault()) {
-            accountRepository.findDefaultAccountByOwnerId(currentUser.getId()).ifPresent(defaultAccount -> {
-                defaultAccount.setDefault(false);
-                accountRepository.save(defaultAccount);
-            });
-        }
-
         existingAccount.get().setUpdatedAt(new Date());
         existingAccount.get().setName(account.getName());
         existingAccount.get().setDescription(account.getDescription());
-        existingAccount.get().setDefault(account.isDefault());
         return accountRepository.save(existingAccount.get());
     }
 
     @GetMapping("/members/{id}")
-    public List<User> getMembers(@PathVariable Long id) {
+    public List<AccountUser> getMembers(@PathVariable Long id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
 
@@ -209,12 +200,12 @@ public class AccountRestController {
 
         // if the current user is the owner of the account, return all users
         if (account.get().getOwner().getId() == currentUser.getId()) {
-            return accountUsers.get().stream().map(AccountUser::getUser).toList();
+            return accountUsers.get();
         }
 
         // if the current user is a member of the account, return all users
         if (accountUsers.get().stream().anyMatch(accountUser -> accountUser.getUser().getId() == currentUser.getId())) {
-            return accountUsers.get().stream().map(AccountUser::getUser).toList();
+            return accountUsers.get();
         }
 
         throw new IllegalArgumentException("La cuenta no se encontró o no pertenece al usuario actual.");
