@@ -1,10 +1,10 @@
 package com.inv.walletCare.rest.account;
 
-import com.inv.walletCare.logic.entity.account.Account;
-import com.inv.walletCare.logic.entity.account.AccountRepository;
+import com.inv.walletCare.logic.entity.account.*;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.exceptions.FieldValidationException;
 import com.inv.walletCare.logic.validation.OnCreate;
+import com.inv.walletCare.logic.validation.OnUpdate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Controller for account-related operations.
@@ -25,6 +26,61 @@ public class AccountRestController {
 
     @Autowired
     private AccountRepository accountRepository;
+
+    @Autowired
+    private AccountUserRespository accountUserRepository;
+
+    /**
+     * Retrieves a list of {@link Account} objects associated with the currently authenticated user.
+     *
+     * @return a {@link List} of {@link Account} objects belonging to the currently authenticated user.
+     * If no accounts are found, an empty list will be returned.
+     */
+    @GetMapping
+    public List<Account> getAccountsbyOwner() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+
+        // Retrieve the accounts for the current user
+        List<Account> accounts = accountRepository.findAllByOwnerId(currentUser.getId()).get();
+
+        // Retrieve the inactive accounts for the current user
+        accountUserRepository.findAllByUserId(currentUser.getId()).ifPresent(accountUsers -> {
+            accounts.add(accountUsers.getAccount());
+        });
+
+        return accounts;
+    }
+
+    /**
+     * Retrieves an account by its ID for the currently authenticated user.
+     *
+     * @param id The ID of the account to retrieve.
+     * @return The {@link Account} object corresponding to the specified ID.
+     * @throws RuntimeException if the account is not found or not owned by the current user.
+     */
+    @GetMapping("/{id}")
+    public Account getAccountById(@PathVariable Long id) {
+        Optional<Account> account = accountRepository.findById(id);
+        if (account.isEmpty()) {
+            throw new IllegalArgumentException("La cuenta no se encontró o no pertenece al usuario actual.");
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+
+        // Check if the account belongs to the current user
+        if (account.get().getOwner().getId() == currentUser.getId()) {
+            return account.get();
+        }
+
+        // Check if the account is shared with the current user
+        if (accountUserRepository.findByUserIdAndAccountId(currentUser.getId(), id).isPresent()) {
+            return account.get();
+        }
+
+        throw new RuntimeException("La cuenta no se encontró o no pertenece al usuario actual.");
+    }
 
     /**
      * Creates a new account with the provided details.
@@ -45,6 +101,14 @@ public class AccountRestController {
             throw new FieldValidationException("name", "El nombre de la cuenta que has elegido ya está en uso. Por favor, ingresa uno diferente");
         }
 
+        // Change the default account to non-default if the new account is set as default
+        if (account.isDefault()) {
+            accountRepository.findDefaultAccountByOwnerId(currentUser.getId()).ifPresent(defaultAccount -> {
+                defaultAccount.setDefault(false);
+                accountRepository.save(defaultAccount);
+            });
+        }
+
         Account newAccount = new Account();
         newAccount.setName(account.getName());
         newAccount.setDescription(account.getDescription());
@@ -54,33 +118,102 @@ public class AccountRestController {
         newAccount.setCreatedAt(new Date());
         newAccount.setUpdatedAt(new Date());
         newAccount.setDeleted(false);
-
+        newAccount.setDefault(account.isDefault());
         return accountRepository.save(newAccount);
     }
 
     /**
-     * Retrieves a list of {@link Account} objects associated with the currently authenticated user.
-     * @return a {@link List} of {@link Account} objects belonging to the currently authenticated user.
-     * If no accounts are found, an empty list will be returned.
+     * Deletes an account by its ID for the currently authenticated user.
+     *
+     * @param id The ID of the account to delete.
+     * @throws RuntimeException if the account is not found or not owned by the current user.
      */
-    @GetMapping
-    public List<Account> getAccountsbyOwner(){
+    @DeleteMapping("/{id}")
+    public void deleteAccount(@PathVariable Long id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
-        return accountRepository.findAllByOwnerId(currentUser.getId()).get();
+
+        Optional<Account> account = accountRepository.findByIdAndOwnerId(id, currentUser.getId());
+        if (account.isEmpty()) {
+            throw new IllegalArgumentException("La cuenta no se encontró o no pertenece al usuario actual.");
+        }
+
+        if (account.get().isDefault()) {
+            throw new IllegalArgumentException("No se puede eliminar la cuenta predeterminada, cambie la cuenta predeterminada antes de eliminarla.");
+        }
+
+        if (account.get().getBalance().compareTo(BigDecimal.ZERO) != 0) {
+            throw new IllegalArgumentException("No se puede eliminar una cuenta con saldo distinto de cero.");
+        }
+
+        account.get().setDeleted(true);
+        account.get().setUpdatedAt(new Date());
+        account.get().setDeletedAt(new Date());
+        accountRepository.save(account.get());
     }
 
     /**
-     * Retrieves an account by its ID for the currently authenticated user.
+     * Updates an existing account with new details.
      *
-     * @param id The ID of the account to retrieve.
-     * @return The {@link Account} object corresponding to the specified ID.
-     * @throws RuntimeException if the account is not found or not owned by the current user.
+     * @param id      The ID of the account to update.
+     * @param account An account object containing the new values for name and description.
+     * @return The updated account object.
+     * @throws RuntimeException if the account with the specified ID is not found or not owned by the current user.
      */
-    @GetMapping("/{id}")
-    public Account getAccountById(@PathVariable Long id) {
+    @PutMapping("/{id}")
+    public Account updateAccount(@Validated(OnUpdate.class) @RequestBody Long id, Account account) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
-        return accountRepository.findByIdAndOwnerId(id, currentUser.getId()).orElseThrow(RuntimeException::new);
+
+        Optional<Account> existingAccount = accountRepository.findByIdAndOwnerId(id, currentUser.getId());
+        if (existingAccount.isEmpty()) {
+            throw new IllegalArgumentException("La cuenta no se encontró o no pertenece al usuario actual.");
+        }
+
+        // Change the default account to non-default if the new account is set as default
+        if (account.isDefault()) {
+            accountRepository.findDefaultAccountByOwnerId(currentUser.getId()).ifPresent(defaultAccount -> {
+                defaultAccount.setDefault(false);
+                accountRepository.save(defaultAccount);
+            });
+        }
+
+        existingAccount.get().setUpdatedAt(new Date());
+        existingAccount.get().setName(account.getName());
+        existingAccount.get().setDescription(account.getDescription());
+        existingAccount.get().setDefault(account.isDefault());
+        return accountRepository.save(existingAccount.get());
+    }
+
+    @GetMapping("/members/{id}")
+    public List<User> getMembers(@PathVariable Long id) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+
+        Optional<Account> account = accountRepository.findById(id);
+        if (account.isEmpty()) {
+            throw new IllegalArgumentException("La cuenta no se encontró o no pertenece al usuario actual.");
+        }
+
+        if (account.get().getType() == AccountTypeEnum.PERSONAL) {
+            throw new IllegalArgumentException("Las cuentas personales no tienen miembros.");
+        }
+
+        Optional<List<AccountUser>> accountUsers = accountUserRepository.findAllByAccountID(id);
+        if (accountUsers.isEmpty()) {
+            throw new IllegalArgumentException("La cuenta no se encontró o no pertenece al usuario actual.");
+        }
+
+        // if the current user is the owner of the account, return all users
+        if (account.get().getOwner().getId() == currentUser.getId()) {
+            return accountUsers.get().stream().map(AccountUser::getUser).toList();
+        }
+
+        // if the current user is a member of the account, return all users
+        if (accountUsers.get().stream().anyMatch(accountUser -> accountUser.getUser().getId() == currentUser.getId())) {
+            return accountUsers.get().stream().map(AccountUser::getUser).toList();
+        }
+
+        throw new IllegalArgumentException("La cuenta no se encontró o no pertenece al usuario actual.");
     }
 }
