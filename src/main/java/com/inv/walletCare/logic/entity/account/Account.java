@@ -49,7 +49,7 @@ public class Account {
      */
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    @NotNull(groups = {OnCreate.class, OnUpdate.class }, message = "El tipo de cuenta es requerido")
+    @NotNull(groups = OnCreate.class, message = "El tipo de cuenta es requerido")
     private AccountTypeEnum type;
 
     /**
