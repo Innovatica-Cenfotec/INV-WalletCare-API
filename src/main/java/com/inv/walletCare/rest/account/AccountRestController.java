@@ -69,4 +69,18 @@ public class AccountRestController {
         User currentUser = (User) authentication.getPrincipal();
         return accountRepository.findAllByOwnerId(currentUser.getId()).get();
     }
+
+    /**
+     * Retrieves an account by its ID for the currently authenticated user.
+     *
+     * @param id The ID of the account to retrieve.
+     * @return The {@link Account} object corresponding to the specified ID.
+     * @throws RuntimeException if the account is not found or not owned by the current user.
+     */
+    @GetMapping("/{id}")
+    public Account getAccountById(@PathVariable Long id) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+        return accountRepository.findByIdAndOwnerId(id, currentUser.getId()).orElseThrow(RuntimeException::new);
+    }
 }
