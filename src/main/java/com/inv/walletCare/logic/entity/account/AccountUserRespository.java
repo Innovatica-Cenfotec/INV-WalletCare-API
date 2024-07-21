@@ -18,7 +18,7 @@ public interface AccountUserRespository extends JpaRepository<AccountUser, Long>
     Optional<AccountUser> findAllByUserId(Long userID);
 
     @Query("SELECT u FROM AccountUser u WHERE u.account.id = ?1 AND u.user.id = ?2 AND u.isDeleted = false AND u.account.isDeleted = false")
-    Optional<AccountUser> findByUserIdAndAccountId(Long userId, Long accountId);
+    Optional<AccountUser> findByUserIdAndAccountId(Long accountId, Long userId);
 
     @Query("SELECT u FROM AccountUser u WHERE u.account.id = ?1 AND u.isDeleted = false AND u.account.isDeleted = false")
     Optional<List<AccountUser>> findAllByAccountID(Long accountID);

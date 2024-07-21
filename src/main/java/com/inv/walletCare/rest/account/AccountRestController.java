@@ -1,11 +1,14 @@
 package com.inv.walletCare.rest.account;
 
+import com.inv.walletCare.logic.entity.Response;
 import com.inv.walletCare.logic.entity.account.*;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.exceptions.FieldValidationException;
 import com.inv.walletCare.logic.validation.OnCreate;
 import com.inv.walletCare.logic.validation.OnUpdate;
+import jakarta.validation.ValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
@@ -206,5 +209,35 @@ public class AccountRestController {
         }
 
         throw new IllegalArgumentException("La cuenta no se encontró o no pertenece al usuario actual.");
+    }
+
+    @PutMapping("/invitation/{id}")
+    public ResponseEntity<Response> manageSharedAccountStatus(@Validated(OnUpdate.class) @PathVariable Long id , @RequestBody AccountUser accountUser){
+        var acUser = accountUserRepository.findByUserIdAndAccountId(id, accountUser.getUser().getId());
+        var gResponse = new Response();
+        if(acUser.isEmpty()){
+            throw new ValidationException("No se ha encontrado la invitación a la cuenta compartida indicada, favor solicita la invitación de nuevo.");
+        }else {
+            switch (acUser.get().getInvitationStatus()){
+                case 1:
+                    acUser.map(existingAccount ->{
+                        existingAccount.setInvitationStatus(accountUser.getInvitationStatus());
+                        return accountUserRepository.save(existingAccount);
+                    });
+                    if(accountUser.getInvitationStatus() == 2){
+                        gResponse.setMessage("La invitación se aceptó correctamente, revisa tus cuentas para poder ver su información.");
+                    } else if (accountUser.getInvitationStatus() == 3) {
+                        gResponse.setMessage("La invitación se rechazó correctamente.");
+                    }
+                    break;
+                case 2:
+                    throw new ValidationException("Esta invitación ya fue aceptada con anterioridad.");
+                case 3:
+                    throw new ValidationException("Esta invitación ya fue rechazada con anterioridad, solicita que te inviten de nuevo.");
+                default:
+                    throw new ValidationException("El estado de la invoitación no es reconocido por el sistema,  solicita que te inviten de nuevo.");
+            }
+        }
+        return ResponseEntity.ok(new Response("Siuu"));
     }
 }
