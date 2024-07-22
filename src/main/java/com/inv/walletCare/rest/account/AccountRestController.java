@@ -214,37 +214,41 @@ public class AccountRestController {
         throw new IllegalArgumentException("La cuenta no se encontró o no pertenece al usuario actual.");
     }
     @PostMapping ("/inviteToSharedAccount")
-    public void inviteToSharedAccount(String inviteToEmail, int accountId) throws Exception{
+    public void inviteToSharedAccount(@RequestBody AccountUser accountUser) throws Exception{
         Authentication authentication=SecurityContextHolder.getContext().getAuthentication();
         User currentUser= (User) authentication.getPrincipal();
-        Optional<User> invitedUser=userRepository.findByEmail(inviteToEmail);
-        Optional<AccountUser> sharedAccount=accountUserRepository.findByUserIdAndAccountId((long) accountId,invitedUser.get().getId());
+        Optional<User> invitedUser=userRepository.findByEmail(accountUser.getUser().getEmail());
 
 
         if(invitedUser.isEmpty()){
             throw new Exception("El usuario que ha intentado invitar no existe");
         }
+        Optional<AccountUser> sharedAccount=accountUserRepository.findByUserIdAndAccountId(accountUser.getAccount().getId(),invitedUser.get().getId());
         if (sharedAccount.isEmpty()){
             AccountUser newAccountUser=new AccountUser();
-            newAccountUser.setAccount(accountRepository.findById((long) accountId).get());
+            newAccountUser.setAccount(accountRepository.findById(accountUser.getAccount().getId()).get());
             newAccountUser.setUser(invitedUser.get());
+            newAccountUser.setActive(true);
+            newAccountUser.setDeleted(false);
             newAccountUser.setInvitationStatus(1);
             accountUserRepository.save(newAccountUser);
+        }else{
+            if (sharedAccount.get().getInvitationStatus() == 2 && sharedAccount.get().getDeleted()==false) {
+                throw new Exception("El usuario ya ha aceptado una invitación para esta cuenta y forma parte de la misma");
+            }
+            if(sharedAccount.get().getInvitationStatus()==1 || sharedAccount.get().getInvitationStatus()==3 && sharedAccount.get().getDeleted()){
+                sharedAccount.get().setInvitationStatus(1);
+                accountUserRepository.save(sharedAccount.get());
+
         }
-        if (sharedAccount.get().getInvitationStatus() == 2 && sharedAccount.get().getDeleted()) {
-            throw new Exception("El usuario ya ha aceptado una invitación para esta cuenta y forma parte de la misma");
-        }
-        if(sharedAccount.get().getInvitationStatus()==1 || sharedAccount.get().getInvitationStatus()==3 && sharedAccount.get().getDeleted()){
-            sharedAccount.get().setInvitationStatus(1);
-            accountUserRepository.save(sharedAccount.get());
 
         }
         Email emailDetails= new Email();
-        emailDetails.setTo(inviteToEmail);
+        emailDetails.setTo(accountUser.getUser().getEmail());
         emailDetails.setSubject("Invitación a Cuenta Compartida");
         Map<String, String> params = new HashMap<>();
-        params.put("DueñoDeCuenta", currentUser.getEmail());
-        params.put("invitado", inviteToEmail);
+        params.put("accountOwner", currentUser.getEmail());
+        params.put("invitedUser", accountUser.getUser().getEmail());
         emailSenderService.sendEmail(emailDetails, "InviteToShareAccount", params);
 
 

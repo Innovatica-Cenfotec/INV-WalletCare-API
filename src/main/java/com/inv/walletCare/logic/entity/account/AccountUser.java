@@ -55,7 +55,7 @@ public class AccountUser {
     /**
      * The timestamp when the user joined the account.
      */
-    @Column(name = "joined_at", nullable = false)
+    @Column(name = "joined_at", nullable = true)
     private Date joinedAt;
 
     /**
