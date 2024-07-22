@@ -48,8 +48,10 @@ public class AccountRestController {
         List<Account> accounts = accountRepository.findAllByOwnerId(currentUser.getId()).get();
 
         // Retrieve the inactive accounts for the current user
-        accountUserRepository.findAllByUserId(currentUser.getId()).ifPresent(accountUsers -> {
-            accounts.add(accountUsers.getAccount());
+        accountUserRepository.findAllByUserId(currentUser.getId()).ifPresent(accountUser -> {
+            if(accountUser.getInvitationStatus() == 2){
+                accounts.add(accountUser.getAccount());
+            }
         });
 
         return accounts;
@@ -78,7 +80,7 @@ public class AccountRestController {
         }
 
         // Check if the account is shared with the current user
-        if (accountUserRepository.findByUserIdAndAccountId(currentUser.getId(), id).isPresent()) {
+        if (accountUserRepository.findByUserIdAndAccountId(id, currentUser.getId()).isPresent()) {
             return account.get();
         }
 
@@ -212,7 +214,7 @@ public class AccountRestController {
     }
 
     @PutMapping("/invitation/{id}")
-    public ResponseEntity<Response> manageSharedAccountStatus(@Validated(OnUpdate.class) @PathVariable Long id , @RequestBody AccountUser accountUser){
+    public ResponseEntity<Response> manageSharedAccounInvitationtStatus(@Validated(OnUpdate.class) @PathVariable Long id , @RequestBody AccountUser accountUser){
         var acUser = accountUserRepository.findByUserIdAndAccountId(id, accountUser.getUser().getId());
         var gResponse = new Response();
         if(acUser.isEmpty()){
@@ -221,23 +223,26 @@ public class AccountRestController {
             switch (acUser.get().getInvitationStatus()){
                 case 1:
                     acUser.map(existingAccount ->{
+
                         existingAccount.setInvitationStatus(accountUser.getInvitationStatus());
+                        if(accountUser.getInvitationStatus() == 2){
+                            gResponse.setMessage("La invitación se aceptó correctamente, revisa tus cuentas para poder ver su información.");
+                            existingAccount.setJoinedAt(new Date());
+                        } else if (accountUser.getInvitationStatus() == 3) {
+                            gResponse.setMessage("La invitación se rechazó correctamente.");
+                        }
                         return accountUserRepository.save(existingAccount);
                     });
-                    if(accountUser.getInvitationStatus() == 2){
-                        gResponse.setMessage("La invitación se aceptó correctamente, revisa tus cuentas para poder ver su información.");
-                    } else if (accountUser.getInvitationStatus() == 3) {
-                        gResponse.setMessage("La invitación se rechazó correctamente.");
-                    }
+
                     break;
                 case 2:
-                    throw new ValidationException("Esta invitación ya fue aceptada con anterioridad.");
+                    throw new ValidationException("Esta invitación ya fue aceptada con anterioridad, revisa tus cuentas para poder ver su información.");
                 case 3:
                     throw new ValidationException("Esta invitación ya fue rechazada con anterioridad, solicita que te inviten de nuevo.");
                 default:
-                    throw new ValidationException("El estado de la invoitación no es reconocido por el sistema,  solicita que te inviten de nuevo.");
+                    throw new ValidationException("El estado de la invitación no es reconocido por el sistema,  solicita que te inviten de nuevo.");
             }
         }
-        return ResponseEntity.ok(new Response("Siuu"));
+        return ResponseEntity.ok(gResponse);
     }
 }
