@@ -37,7 +37,8 @@ public class AccountRestController {
     @Autowired
     private EmailSenderService emailSenderService;
 
-    @Autowired private UserRepository userRepository;
+    @Autowired
+    private UserRepository userRepository;
 
     /**
      * Retrieves a list of {@link Account} objects associated with the currently authenticated user.
@@ -54,8 +55,10 @@ public class AccountRestController {
         List<Account> accounts = accountRepository.findAllByOwnerId(currentUser.getId()).get();
 
         // Retrieve the inactive accounts for the current user
-        accountUserRepository.findAllByUserId(currentUser.getId()).ifPresent(accountUsers -> {
-            accounts.add(accountUsers.getAccount());
+        accountUserRepository.findAllByUserId(currentUser.getId()).ifPresent(accountUser -> {
+            if (accountUser.getInvitationStatus() == 2) {
+                accounts.add(accountUser.getAccount());
+            }
         });
 
         return accounts;
@@ -84,7 +87,7 @@ public class AccountRestController {
         }
 
         // Check if the account is shared with the current user
-        if (accountUserRepository.findByUserIdAndAccountId(currentUser.getId(), id).isPresent()) {
+        if (accountUserRepository.findByUserIdAndAccountId(id, currentUser.getId()).isPresent()) {
             return account.get();
         }
 
@@ -170,7 +173,7 @@ public class AccountRestController {
      * @throws RuntimeException if the account with the specified ID is not found or not owned by the current user.
      */
     @PutMapping("/{id}")
-    public Account updateAccount(@Validated(OnUpdate.class) @PathVariable Long id,@RequestBody Account account) {
+    public Account updateAccount(@Validated(OnUpdate.class) @PathVariable Long id, @RequestBody Account account) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
 
@@ -185,6 +188,13 @@ public class AccountRestController {
         return accountRepository.save(existingAccount.get());
     }
 
+
+    /**
+     * Retreives the list of all members of the shared account
+     *
+     * @param id is the account id
+     * @return returns the list of all members of the shared account
+     */
     @GetMapping("/members/{id}")
     public List<AccountUser> getMembers(@PathVariable Long id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -218,17 +228,10 @@ public class AccountRestController {
     }
 
     /**
-     * Invites a user to share an account.
+     * This cotroller send the invitation to shared account
      *
-     * <p>This endpoint handles the invitation of a user to a shared account.
-     * The current authenticated user sends an invitation to another user to join a specific account.
-     * If the invitation is accepted, the invited user will have access to the shared account.</p>
-     *
-     * @param accountUser the details of the account and the user to be invited
-     * @throws Exception if the current user tries to invite themselves,
-     *                   if the invited user does not exist,
-     *                   if the invited user has already accepted an invitation to this account,
-     *                   or if there is an error during the invitation process
+     * @param accountUser is the invitation of the shared account
+     * @throws Exception handles the all validation exceptions
      */
     @PostMapping("/inviteToSharedAccount")
     public void inviteToSharedAccount(@RequestBody AccountUser accountUser) throws Exception {
@@ -236,13 +239,11 @@ public class AccountRestController {
         User currentUser = (User) authentication.getPrincipal();
         Optional<User> invitedUser = userRepository.findByEmail(accountUser.getUser().getEmail());
 
-        if (currentUser.getEmail().equals(accountUser.getUser().getEmail())) {
-            throw new Exception("No se puede enviar a usted mismo, por favor invite a otro usuario");
-        }
         if (invitedUser.isEmpty()) {
             throw new Exception("El usuario que ha intentado invitar no existe");
         }
         Optional<AccountUser> sharedAccount = accountUserRepository.findByUserIdAndAccountId(accountUser.getAccount().getId(), invitedUser.get().getId());
+        Optional<Account> baseAccount = accountRepository.findById(accountUser.getAccount().getId());
         if (sharedAccount.isEmpty()) {
             AccountUser newAccountUser = new AccountUser();
             newAccountUser.setAccount(accountRepository.findById(accountUser.getAccount().getId()).get());
@@ -267,36 +268,51 @@ public class AccountRestController {
         Map<String, String> params = new HashMap<>();
         params.put("accountOwner", currentUser.getEmail());
         params.put("invitedUser", accountUser.getUser().getEmail());
+        params.put("invitationHandlerLink",
+                "http://localhost:4200/invitation" +
+                        "?host=" + baseAccount.get().getOwner().getEmail() +
+                        "&accountName=" + baseAccount.get().getName() +
+                        "&accountId=" + baseAccount.get().getId() +
+                        "&userId=" + invitedUser.get().getId());
         emailSenderService.sendEmail(emailDetails, "InviteToShareAccount", params);
     }
 
+    /**
+     * This controller handles the invitattion status to the shared account
+     * @param id is the account id
+     * @param accountUser is the invitation with the status
+     * @return returns a message with the status of the invitation
+     */
     @PutMapping("/invitation/{id}")
-    public ResponseEntity<Response> manageSharedAccountStatus(@Validated(OnUpdate.class) @PathVariable Long id , @RequestBody AccountUser accountUser){
+    public ResponseEntity<Response> manageSharedAccounInvitationtStatus(@Validated(OnUpdate.class) @PathVariable Long id, @RequestBody AccountUser accountUser) {
         var acUser = accountUserRepository.findByUserIdAndAccountId(id, accountUser.getUser().getId());
         var gResponse = new Response();
-        if(acUser.isEmpty()){
+        if (acUser.isEmpty()) {
             throw new ValidationException("No se ha encontrado la invitación a la cuenta compartida indicada, favor solicita la invitación de nuevo.");
-        }else {
-            switch (acUser.get().getInvitationStatus()){
+        } else {
+            switch (acUser.get().getInvitationStatus()) {
                 case 1:
-                    acUser.map(existingAccount ->{
+                    acUser.map(existingAccount -> {
+
                         existingAccount.setInvitationStatus(accountUser.getInvitationStatus());
+                        if (accountUser.getInvitationStatus() == 2) {
+                            gResponse.setMessage("La invitación se aceptó correctamente, revisa tus cuentas para poder ver su información.");
+                            existingAccount.setJoinedAt(new Date());
+                        } else if (accountUser.getInvitationStatus() == 3) {
+                            gResponse.setMessage("La invitación se rechazó correctamente.");
+                        }
                         return accountUserRepository.save(existingAccount);
                     });
-                    if(accountUser.getInvitationStatus() == 2){
-                        gResponse.setMessage("La invitación se aceptó correctamente, revisa tus cuentas para poder ver su información.");
-                    } else if (accountUser.getInvitationStatus() == 3) {
-                        gResponse.setMessage("La invitación se rechazó correctamente.");
-                    }
+
                     break;
                 case 2:
-                    throw new ValidationException("Esta invitación ya fue aceptada con anterioridad.");
+                    throw new ValidationException("Esta invitación ya fue aceptada con anterioridad, revisa tus cuentas para poder ver su información.");
                 case 3:
                     throw new ValidationException("Esta invitación ya fue rechazada con anterioridad, solicita que te inviten de nuevo.");
                 default:
-                    throw new ValidationException("El estado de la invoitación no es reconocido por el sistema,  solicita que te inviten de nuevo.");
+                    throw new ValidationException("El estado de la invitación no es reconocido por el sistema,  solicita que te inviten de nuevo.");
             }
         }
-        return ResponseEntity.ok(new Response("Siuu"));
+        return ResponseEntity.ok(gResponse);
     }
 }
