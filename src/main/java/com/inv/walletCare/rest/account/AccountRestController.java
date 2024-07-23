@@ -260,7 +260,7 @@ public class AccountRestController {
                         "?host=" + baseAccount.get().getOwner().getEmail() +
                         "&accountName=" + baseAccount.get().getName() +
                         "&accountId=" + baseAccount.get().getId() +
-                        "&userId=" + baseAccount.get().getOwner().getId());
+                        "&userId=" + invitedUser.get().getId());
         emailSenderService.sendEmail(emailDetails, "InviteToShareAccount", params);
 
 
