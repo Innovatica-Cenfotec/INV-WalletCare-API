@@ -2,6 +2,8 @@ package com.inv.walletCare.rest.account;
 
 import com.inv.walletCare.logic.entity.Response;
 import com.inv.walletCare.logic.entity.account.*;
+import com.inv.walletCare.logic.entity.accountUser.AccountUser;
+import com.inv.walletCare.logic.entity.accountUser.AccountUserRespository;
 import com.inv.walletCare.logic.entity.email.Email;
 import com.inv.walletCare.logic.entity.email.EmailSenderService;
 import com.inv.walletCare.logic.entity.user.User;
@@ -12,7 +14,6 @@ import com.inv.walletCare.logic.validation.OnUpdate;
 import jakarta.validation.ValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
@@ -130,7 +131,7 @@ public class AccountRestController {
         newAccount.setBalance(BigDecimal.ZERO);
         newAccount.setCreatedAt(new Date());
         newAccount.setUpdatedAt(new Date());
-        newAccount.setDeleted(false);
+        newAccount .setDeleted(false);
         newAccount.setDefault(false);
         return accountRepository.save(newAccount);
     }

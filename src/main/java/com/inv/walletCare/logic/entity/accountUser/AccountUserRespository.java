@@ -1,4 +1,4 @@
-package com.inv.walletCare.logic.entity.account;
+package com.inv.walletCare.logic.entity.accountUser;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
