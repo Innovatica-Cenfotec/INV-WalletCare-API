@@ -26,15 +26,18 @@ public class Account {
      * The name of the account, which is unique to the user.
      */
     @Column(name = "name", nullable = false, length = 100)
-    @Size(groups = {OnCreate.class, OnUpdate.class }, min = 4, max = 100, message = "El nombre debe tener entre 4 y 100 caracteres")
-    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "^[a-zA-Z0-9 ]+$", message = "El nombre solo puede contener letras, números y espacios")
+    @Size(groups = {OnCreate.class, OnUpdate.class }, min = 4, max = 100,
+            message = "El nombre debe tener entre 4 y 100 caracteres")
+    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "^[a-zA-Z0-9 ]+$",
+            message = "El nombre solo puede contener letras, números y espacios")
     private String name;
 
     /**
      * A brief description of the account for additional context.
      */
     @Column(name = "description", length = 200)
-    @Length(groups = {OnCreate.class, OnUpdate.class }, max = 200, message = "La descripción debe tener menos de 200 caracteres")
+    @Length(groups = {OnCreate.class, OnUpdate.class }, max = 200,
+            message = "La descripción debe tener menos de 200 caracteres")
     private String description;
 
     /**
