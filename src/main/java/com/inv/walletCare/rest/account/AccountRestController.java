@@ -253,14 +253,13 @@ public class AccountRestController {
             newAccountUser.setInvitationStatus(1);
             accountUserRepository.save(newAccountUser);
         } else {
-            if (sharedAccount.get().getInvitationStatus() == 2 && sharedAccount.get().getDeleted() == false) {
+            if (sharedAccount.get().getInvitationStatus() == 2 && !sharedAccount.get().getDeleted()) {
                 throw new Exception("El usuario ya ha aceptado una invitación para esta cuenta y forma parte de la misma");
             }
-            if (sharedAccount.get().getInvitationStatus() == 1 || sharedAccount.get().getInvitationStatus() == 3 && sharedAccount.get().getDeleted()) {
+            if ((sharedAccount.get().getInvitationStatus() == 1 || sharedAccount.get().getInvitationStatus() == 3) && sharedAccount.get().getDeleted()) {
                 sharedAccount.get().setInvitationStatus(1);
                 accountUserRepository.save(sharedAccount.get());
             }
-
         }
 
         Email emailDetails = new Email();
@@ -276,10 +275,7 @@ public class AccountRestController {
                         "&accountId=" + baseAccount.get().getId() +
                         "&userId=" + invitedUser.get().getId());
         emailSenderService.sendEmail(emailDetails, "InviteToShareAccount", params);
-
-
     }
-
 
     /**
      * This controller handles the invitattion status to the shared account
