@@ -8,6 +8,9 @@ public class Response {
     // The message to be conveyed in the response.
     private String message;
 
+    public Response() {
+    }
+
     /**
      * Constructs a new Response object with a specified message.
      *
@@ -24,5 +27,9 @@ public class Response {
      */
     public String getMessage() {
         return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 }
