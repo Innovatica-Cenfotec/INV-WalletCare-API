@@ -188,6 +188,13 @@ public class AccountRestController {
         return accountRepository.save(existingAccount.get());
     }
 
+
+    /**
+     * Retreives the list of all members of the shared account
+     *
+     * @param id is the account id
+     * @return returns the list of all members of the shared account
+     */
     @GetMapping("/members/{id}")
     public List<AccountUser> getMembers(@PathVariable Long id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -220,6 +227,12 @@ public class AccountRestController {
         throw new IllegalArgumentException("La cuenta no se encontró o no pertenece al usuario actual.");
     }
 
+    /**
+     * This cotroller send the invitation to shared account
+     *
+     * @param accountUser is the invitation of the shared account
+     * @throws Exception handles the all validation exceptions
+     */
     @PostMapping("/inviteToSharedAccount")
     public void inviteToSharedAccount(@RequestBody AccountUser accountUser) throws Exception {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -249,6 +262,7 @@ public class AccountRestController {
             }
 
         }
+
         Email emailDetails = new Email();
         emailDetails.setTo(accountUser.getUser().getEmail());
         emailDetails.setSubject("Invitación a Cuenta Compartida");
@@ -267,6 +281,12 @@ public class AccountRestController {
     }
 
 
+    /**
+     * This controller handles the invitattion status to the shared account
+     * @param id is the account id
+     * @param accountUser is the invitation with the status
+     * @return returns a message with the status of the invitation
+     */
     @PutMapping("/invitation/{id}")
     public ResponseEntity<Response> manageSharedAccounInvitationtStatus(@Validated(OnUpdate.class) @PathVariable Long id, @RequestBody AccountUser accountUser) {
         var acUser = accountUserRepository.findByUserIdAndAccountId(id, accountUser.getUser().getId());
