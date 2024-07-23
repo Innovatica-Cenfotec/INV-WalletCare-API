@@ -216,48 +216,59 @@ public class AccountRestController {
 
         throw new IllegalArgumentException("La cuenta no se encontró o no pertenece al usuario actual.");
     }
-  
-    @PostMapping ("/inviteToSharedAccount")
-    public void inviteToSharedAccount(@RequestBody AccountUser accountUser) throws Exception{
-        Authentication authentication=SecurityContextHolder.getContext().getAuthentication();
-        User currentUser= (User) authentication.getPrincipal();
-        Optional<User> invitedUser=userRepository.findByEmail(accountUser.getUser().getEmail());
 
+    /**
+     * Invites a user to share an account.
+     *
+     * <p>This endpoint handles the invitation of a user to a shared account.
+     * The current authenticated user sends an invitation to another user to join a specific account.
+     * If the invitation is accepted, the invited user will have access to the shared account.</p>
+     *
+     * @param accountUser the details of the account and the user to be invited
+     * @throws Exception if the current user tries to invite themselves,
+     *                   if the invited user does not exist,
+     *                   if the invited user has already accepted an invitation to this account,
+     *                   or if there is an error during the invitation process
+     */
+    @PostMapping("/inviteToSharedAccount")
+    public void inviteToSharedAccount(@RequestBody AccountUser accountUser) throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+        Optional<User> invitedUser = userRepository.findByEmail(accountUser.getUser().getEmail());
 
-        if(invitedUser.isEmpty()){
+        if (currentUser.getEmail().equals(accountUser.getUser().getEmail())) {
+            throw new Exception("No se puede enviar a usted mismo, por favor invite a otro usuario");
+        }
+        if (invitedUser.isEmpty()) {
             throw new Exception("El usuario que ha intentado invitar no existe");
         }
-        Optional<AccountUser> sharedAccount=accountUserRepository.findByUserIdAndAccountId(accountUser.getAccount().getId(),invitedUser.get().getId());
-        if (sharedAccount.isEmpty()){
-            AccountUser newAccountUser=new AccountUser();
+        Optional<AccountUser> sharedAccount = accountUserRepository.findByUserIdAndAccountId(accountUser.getAccount().getId(), invitedUser.get().getId());
+        if (sharedAccount.isEmpty()) {
+            AccountUser newAccountUser = new AccountUser();
             newAccountUser.setAccount(accountRepository.findById(accountUser.getAccount().getId()).get());
             newAccountUser.setUser(invitedUser.get());
             newAccountUser.setActive(true);
             newAccountUser.setDeleted(false);
             newAccountUser.setInvitationStatus(1);
             accountUserRepository.save(newAccountUser);
-        }else{
-            if (sharedAccount.get().getInvitationStatus() == 2 && sharedAccount.get().getDeleted()==false) {
+        } else {
+            if (sharedAccount.get().getInvitationStatus() == 2 && !sharedAccount.get().getDeleted()) {
                 throw new Exception("El usuario ya ha aceptado una invitación para esta cuenta y forma parte de la misma");
             }
-            if(sharedAccount.get().getInvitationStatus()==1 || sharedAccount.get().getInvitationStatus()==3 && sharedAccount.get().getDeleted()){
+            if ((sharedAccount.get().getInvitationStatus() == 1 || sharedAccount.get().getInvitationStatus() == 3) && sharedAccount.get().getDeleted()) {
                 sharedAccount.get().setInvitationStatus(1);
                 accountUserRepository.save(sharedAccount.get());
-
+            }
         }
 
-        }
-        Email emailDetails= new Email();
+        Email emailDetails = new Email();
         emailDetails.setTo(accountUser.getUser().getEmail());
         emailDetails.setSubject("Invitación a Cuenta Compartida");
         Map<String, String> params = new HashMap<>();
         params.put("accountOwner", currentUser.getEmail());
         params.put("invitedUser", accountUser.getUser().getEmail());
         emailSenderService.sendEmail(emailDetails, "InviteToShareAccount", params);
-
-
     }
-
 
     @PutMapping("/invitation/{id}")
     public ResponseEntity<Response> manageSharedAccountStatus(@Validated(OnUpdate.class) @PathVariable Long id , @RequestBody AccountUser accountUser){
