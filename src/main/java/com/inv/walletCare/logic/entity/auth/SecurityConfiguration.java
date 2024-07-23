@@ -37,6 +37,7 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST,"password/forgot").permitAll()
                         .requestMatchers(HttpMethod.POST,"password/validate-otp").permitAll()
                         .requestMatchers(HttpMethod.POST,"password/reset-password").permitAll()
+                        .requestMatchers(HttpMethod.PUT,"accounts/invitation/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
