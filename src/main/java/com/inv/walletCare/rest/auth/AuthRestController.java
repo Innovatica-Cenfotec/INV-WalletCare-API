@@ -16,7 +16,6 @@ import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.exceptions.FieldValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -147,6 +146,7 @@ public class AuthRestController {
         newAccount.setCreatedAt(new Date());
         newAccount.setUpdatedAt(new Date());
         newAccount.setDeleted(false);
+        newAccount.setDefault(true);
         accountRepository.save(newAccount);
 
         return ResponseEntity.ok(new Response("Usuario registrado exitosamente"));
