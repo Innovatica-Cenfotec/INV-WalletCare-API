@@ -14,6 +14,7 @@ import com.inv.walletCare.logic.validation.OnUpdate;
 import jakarta.validation.ValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.MailException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
@@ -21,6 +22,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * Controller for account-related operations.
@@ -131,7 +134,7 @@ public class AccountRestController {
         newAccount.setBalance(BigDecimal.ZERO);
         newAccount.setCreatedAt(new Date());
         newAccount.setUpdatedAt(new Date());
-        newAccount .setDeleted(false);
+        newAccount.setDeleted(false);
         newAccount.setDefault(false);
         return accountRepository.save(newAccount);
     }
@@ -184,12 +187,41 @@ public class AccountRestController {
             throw new IllegalArgumentException("La cuenta no se encontró o no pertenece al usuario actual.");
         }
 
+        // Checks if the account is shared and notifies all members.
+        if (existingAccount.get().getType() == AccountTypeEnum.SHARED) {
+            Optional<List<AccountUser>> accountUsers = accountUserRepository.findAllByAccountID(id);
+            if (accountUsers.isPresent()) {
+                // Send email parallelly to all members
+                List<CompletableFuture<Void>> futures = new ArrayList<>();
+                for (AccountUser accountUser : accountUsers.get()) {
+                    futures.add(CompletableFuture.runAsync(() -> {
+                        try {
+                            Email emailDetails = new Email();
+                            emailDetails.setTo(accountUser.getUser().getEmail());
+                            emailDetails.setSubject("Actualización de Cuenta Compartida");
+                            Map<String, String> params = new HashMap<>();
+                            params.put("accountOwnerName", currentUser.getEmail());
+                            params.put("memberName", accountUser.getUser().getEmail());
+                            params.put("accountName", existingAccount.get().getName());
+                            emailSenderService.sendEmail(emailDetails, "UpdateSharedAccount", params);
+                        } catch (MailException e) {
+                            // Log and continue with the next user
+                            System.err.println("Error sending email: " + e.getMessage());
+                        } catch (Exception e) {
+                            throw new RuntimeException("Error al enviar la notificación de actualización de cuenta compartida.", e);
+                        }
+                    }));
+                }
+                // Wait for all to complete
+                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+            }
+        }
+
         existingAccount.get().setUpdatedAt(new Date());
         existingAccount.get().setName(account.getName());
         existingAccount.get().setDescription(account.getDescription());
         return accountRepository.save(existingAccount.get());
     }
-
 
     /**
      * Retreives the list of all members of the shared account
@@ -259,7 +291,7 @@ public class AccountRestController {
             newAccountUser.setDeleted(false);
             newAccountUser.setInvitationStatus(1);
             accountUserRepository.save(newAccountUser);
-        }else{
+        } else {
             if (sharedAccount.get().getInvitationStatus() == 1) {
                 throw new Exception("La invitación ya ha sido enviada a este usuario");
             }
@@ -292,7 +324,8 @@ public class AccountRestController {
 
     /**
      * This controller handles the invitattion status to the shared account
-     * @param id is the account id
+     *
+     * @param id          is the account id
      * @param accountUser is the invitation with the status
      * @return returns a message with the status of the invitation
      */
