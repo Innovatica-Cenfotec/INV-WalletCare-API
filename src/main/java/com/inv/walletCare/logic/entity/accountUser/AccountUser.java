@@ -1,5 +1,6 @@
-package com.inv.walletCare.logic.entity.account;
+package com.inv.walletCare.logic.entity.accountUser;
 
+import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.validation.OnUpdate;
 import jakarta.persistence.*;
