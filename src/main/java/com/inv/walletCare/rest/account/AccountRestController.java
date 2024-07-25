@@ -2,6 +2,8 @@ package com.inv.walletCare.rest.account;
 
 import com.inv.walletCare.logic.entity.Response;
 import com.inv.walletCare.logic.entity.account.*;
+import com.inv.walletCare.logic.entity.accountUser.AccountUser;
+import com.inv.walletCare.logic.entity.accountUser.AccountUserRespository;
 import com.inv.walletCare.logic.entity.email.Email;
 import com.inv.walletCare.logic.entity.email.EmailSenderService;
 import com.inv.walletCare.logic.entity.user.User;
@@ -12,6 +14,7 @@ import com.inv.walletCare.logic.validation.OnUpdate;
 import jakarta.validation.ValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.MailException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
@@ -19,6 +22,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * Controller for account-related operations.
@@ -56,7 +61,7 @@ public class AccountRestController {
 
         // Retrieve the inactive accounts for the current user
         accountUserRepository.findAllByUserId(currentUser.getId()).ifPresent(accountUser -> {
-            if (accountUser.getInvitationStatus() == 2) {
+            if (accountUser.getInvitationStatus() == 1) {
                 accounts.add(accountUser.getAccount());
             }
         });
@@ -182,12 +187,41 @@ public class AccountRestController {
             throw new IllegalArgumentException("La cuenta no se encontró o no pertenece al usuario actual.");
         }
 
+        // Checks if the account is shared and notifies all members.
+        if (existingAccount.get().getType() == AccountTypeEnum.SHARED) {
+            Optional<List<AccountUser>> accountUsers = accountUserRepository.findAllByAccountID(id);
+            if (accountUsers.isPresent()) {
+                // Send email parallelly to all members
+                List<CompletableFuture<Void>> futures = new ArrayList<>();
+                for (AccountUser accountUser : accountUsers.get()) {
+                    futures.add(CompletableFuture.runAsync(() -> {
+                        try {
+                            Email emailDetails = new Email();
+                            emailDetails.setTo(accountUser.getUser().getEmail());
+                            emailDetails.setSubject("Actualización de Cuenta Compartida");
+                            Map<String, String> params = new HashMap<>();
+                            params.put("accountOwnerName", currentUser.getEmail());
+                            params.put("memberName", accountUser.getUser().getEmail());
+                            params.put("accountName", existingAccount.get().getName());
+                            emailSenderService.sendEmail(emailDetails, "UpdateSharedAccount", params);
+                        } catch (MailException e) {
+                            // Log and continue with the next user
+                            System.err.println("Error sending email: " + e.getMessage());
+                        } catch (Exception e) {
+                            throw new RuntimeException("Error al enviar la notificación de actualización de cuenta compartida.", e);
+                        }
+                    }));
+                }
+                // Wait for all to complete
+                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+            }
+        }
+
         existingAccount.get().setUpdatedAt(new Date());
         existingAccount.get().setName(account.getName());
         existingAccount.get().setDescription(account.getDescription());
         return accountRepository.save(existingAccount.get());
     }
-
 
     /**
      * Retreives the list of all members of the shared account
@@ -234,18 +268,23 @@ public class AccountRestController {
      * @throws Exception handles the all validation exceptions
      */
     @PostMapping("/inviteToSharedAccount")
-    public void inviteToSharedAccount(@RequestBody AccountUser accountUser) throws Exception {
+    public AccountUser inviteToSharedAccount(@RequestBody AccountUser accountUser) throws Exception {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
         Optional<User> invitedUser = userRepository.findByEmail(accountUser.getUser().getEmail());
-
         if (invitedUser.isEmpty()) {
             throw new Exception("El usuario que ha intentado invitar no existe");
         }
+
+        if (currentUser.getId() == invitedUser.get().getId()) {
+            throw new Exception("No puedes invitarte a ti mismo a una cuenta compartida");
+        }
+
+        AccountUser newAccountUser = null;
         Optional<AccountUser> sharedAccount = accountUserRepository.findByUserIdAndAccountId(accountUser.getAccount().getId(), invitedUser.get().getId());
         Optional<Account> baseAccount = accountRepository.findById(accountUser.getAccount().getId());
         if (sharedAccount.isEmpty()) {
-            AccountUser newAccountUser = new AccountUser();
+            newAccountUser = new AccountUser();
             newAccountUser.setAccount(accountRepository.findById(accountUser.getAccount().getId()).get());
             newAccountUser.setUser(invitedUser.get());
             newAccountUser.setActive(true);
@@ -253,14 +292,17 @@ public class AccountRestController {
             newAccountUser.setInvitationStatus(1);
             accountUserRepository.save(newAccountUser);
         } else {
-            if (sharedAccount.get().getInvitationStatus() == 2 && sharedAccount.get().getDeleted() == false) {
-                throw new Exception("El usuario ya ha aceptado una invitación para esta cuenta y forma parte de la misma");
-            }
-            if (sharedAccount.get().getInvitationStatus() == 1 || sharedAccount.get().getInvitationStatus() == 3 && sharedAccount.get().getDeleted()) {
-                sharedAccount.get().setInvitationStatus(1);
-                accountUserRepository.save(sharedAccount.get());
+            if (sharedAccount.get().getInvitationStatus() == 1) {
+                throw new Exception("La invitación ya ha sido enviada a este usuario");
             }
 
+            if (sharedAccount.get().getInvitationStatus() == 2) {
+                throw new Exception("El usuario ya forma parte de esta cuenta");
+            }
+
+            if (sharedAccount.get().getInvitationStatus() == 3) {
+                throw new Exception("El usuario ha rechazado la invitación a esta cuenta");
+            }
         }
 
         Email emailDetails = new Email();
@@ -269,6 +311,7 @@ public class AccountRestController {
         Map<String, String> params = new HashMap<>();
         params.put("accountOwner", currentUser.getEmail());
         params.put("invitedUser", accountUser.getUser().getEmail());
+        params.put("accountName", baseAccount.get().getName());
         params.put("invitationHandlerLink",
                 "http://localhost:4200/invitation" +
                         "?host=" + baseAccount.get().getOwner().getEmail() +
@@ -276,10 +319,8 @@ public class AccountRestController {
                         "&accountId=" + baseAccount.get().getId() +
                         "&userId=" + invitedUser.get().getId());
         emailSenderService.sendEmail(emailDetails, "InviteToShareAccount", params);
-
-
+        return newAccountUser;
     }
-
 
     /**
      * This controller handles the invitattion status to the shared account
