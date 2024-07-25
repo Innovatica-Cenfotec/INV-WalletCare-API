@@ -346,6 +346,8 @@ public class AccountRestController {
                             existingAccount.setJoinedAt(new Date());
                         } else if (accountUser.getInvitationStatus() == 3) {
                             gResponse.setMessage("La invitación se rechazó correctamente.");
+                        } else {
+                            throw new ValidationException("El estado de la invitación seleccionado no fue reconocido, favor intentntalo nuevamente. ");
                         }
                         return accountUserRepository.save(existingAccount);
                     });
@@ -355,10 +357,69 @@ public class AccountRestController {
                     throw new ValidationException("Esta invitación ya fue aceptada con anterioridad, revisa tus cuentas para poder ver su información.");
                 case 3:
                     throw new ValidationException("Esta invitación ya fue rechazada con anterioridad, solicita que te inviten de nuevo.");
+                case 4:
+                    throw new ValidationException("Ya te habías salido de esta cuenta compartida, si quieres entrar nuevamente solicita al dueño una nueva invitación.");
                 default:
-                    throw new ValidationException("El estado de la invitación no es reconocido por el sistema,  solicita que te inviten de nuevo.");
+                    throw new ValidationException("El estado de la invitación no es reconocido por el sistema,  solicita que la inviten de nuevo.");
             }
         }
         return ResponseEntity.ok(gResponse);
+    }
+
+    /**
+     * @param id
+     * @param accountUser
+     * @return
+     */
+    @PutMapping("/leave-account/{id}")
+    public ResponseEntity<Response> leaveSharedAccount(@Validated(OnUpdate.class) @PathVariable Long id, @RequestBody AccountUser accountUser) throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+        var sharedAccount = accountUserRepository.findByUserIdAndAccountId(id, accountUser.getUser().getId());
+        var account = accountRepository.findById(sharedAccount.get().getAccount().getId());
+
+        String message;
+        if (sharedAccount.isEmpty()) {
+            throw new ValidationException("No se ha encontrado la cuenta compartida indicada, favor intentalo de nuevo.");
+        }
+
+        switch (sharedAccount.get().getInvitationStatus()) {
+            case 2:
+                sharedAccount.map(existingAccount -> {
+                    existingAccount.setInvitationStatus(4);
+                    existingAccount.setLeftAt(new Date());
+                    existingAccount.setActive(false);
+                    return accountUserRepository.save(existingAccount);
+                });
+                break;
+            case 3:
+                throw new ValidationException("Esta invitación a esta cuenta compartida ya fue rechazada con anterioridad, así que no formas parte de la misma.");
+            case 4:
+                throw new ValidationException("Ya te habías salido de esta cuenta compartida, así que no formas parte de la misma.");
+            default:
+                throw new ValidationException("Tu estado en esta cuenta compartida no esta reconocido por el sistema, intenta esta acción mas tarde.");
+
+        }
+        var mail = new Email();
+        mail.setSubject("Notificación de salida de cuenta compartida.");
+
+        var params = new HashMap<String, String>();
+        params.put("accountOwner", account.get().getOwner().getEmail());
+        params.put("accountMember", sharedAccount.get().getUser().getEmail());
+        params.put("accountName", account.get().getName());
+
+
+        //The memeber is leaving the shared account
+        if (Objects.equals(currentUser.getId(), accountUser.getUser().getId())) {
+            mail.setTo(sharedAccount.get().getAccount().getOwner().getEmail());
+            emailSenderService.sendEmail(mail, "LeaveSharedAccount", params);
+            message = "Te has salido correctamente de la cuenta compartida, recuerda que ahora todos los gastos, ingresos y ahorros pasan a tu cuenta principal.";
+        } else {
+            //The Owner remove the memeber from the shared account
+            mail.setTo(sharedAccount.get().getUser().getEmail());
+            emailSenderService.sendEmail(mail, "RemoveFromSharedAccount", params);
+            message = "Se ha eliminado correctamente al usuario " + sharedAccount.get().getUser().getEmail() + "de la cuenta compartida. ";
+        }
+        return ResponseEntity.ok(new Response(message));
     }
 }
