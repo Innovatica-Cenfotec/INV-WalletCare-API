@@ -418,7 +418,7 @@ public class AccountRestController {
             //The Owner remove the memeber from the shared account
             mail.setTo(sharedAccount.get().getUser().getEmail());
             emailSenderService.sendEmail(mail, "RemoveFromSharedAccount", params);
-            message = "Se ha eliminado correctamente al usuario " + sharedAccount.get().getUser().getEmail() + "de la cuenta compartida. ";
+            message = "Se ha eliminado correctamente al usuario " + sharedAccount.get().getUser().getEmail() + " de la cuenta compartida. ";
         }
         return ResponseEntity.ok(new Response(message));
     }
