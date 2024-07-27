@@ -1,9 +1,9 @@
 package com.inv.walletCare.logic.entity.expense;
 
-import com.inv.walletCare.logic.entity.income.FrequencyTypeEnum;
-import com.inv.walletCare.logic.entity.income.IncomeTypeEnum;
+import com.inv.walletCare.logic.entity.AmountTypeEnum;
+import com.inv.walletCare.logic.entity.FrequencyTypeEnum;
+import com.inv.walletCare.logic.entity.IncomeExpenceType;
 import com.inv.walletCare.logic.entity.tax.Tax;
-import com.inv.walletCare.logic.entity.tax.TaxPurposeTypeEnum;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.expenseCategory.ExpenseCategory;
 import com.inv.walletCare.logic.validation.OnCreate;
@@ -75,6 +75,14 @@ public class Expense {
     private BigDecimal amount;
 
     /**
+     * Type of amount: net, gross.
+     */
+    @Column(name = "amount_type", length = 50)
+    @Enumerated(EnumType.STRING)
+    @NotNull(groups = {OnCreate.class, OnUpdate.class }, message = "El tipo de monto es requerido")
+    private AmountTypeEnum amountType;
+
+    /**
      * Indicates whether the expense is a template.
      */
     @Column(name = "is_template", nullable = false)
@@ -87,7 +95,7 @@ public class Expense {
     @Column(name = "type", length = 50)
     @Enumerated(EnumType.STRING)
     @NotNull(groups = OnCreate.class, message = "El tipo de gasto es requerido")
-    private ExpenseTypeEnum type;
+    private IncomeExpenceType type;
 
     /**
      * Frequency of the recurring: "monthly", "annual", "biweekly", "other" (applies only to recurring incomes).
@@ -111,12 +119,6 @@ public class Expense {
             message = "Debe indicar si el gasto es relevante para la declaración de impuestos")
     private Boolean isTaxRelated;
 
-    /**
-     * Type of expense for tax purposes: "Gross" or "Net"
-     */
-    @Column(name = "tax_type", length = 50)
-    @Enumerated(EnumType.STRING)
-    private TaxPurposeTypeEnum taxType;
 
     /**
      * Tax associated with the expense.
@@ -205,6 +207,14 @@ public class Expense {
         this.amount = amount;
     }
 
+    public @NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "El tipo de monto es requerido") AmountTypeEnum getAmountType() {
+        return amountType;
+    }
+
+    public void setAmountType(@NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "El tipo de monto es requerido") AmountTypeEnum amountType) {
+        this.amountType = amountType;
+    }
+
     public @NotNull(groups = OnCreate.class, message = "Debe indicar si el gasto es una plantilla") Boolean getTemplate() {
         return isTemplate;
     }
@@ -213,11 +223,11 @@ public class Expense {
         isTemplate = template;
     }
 
-    public @NotNull(groups = OnCreate.class, message = "El tipo de gasto es requerido") ExpenseTypeEnum getType() {
+    public @NotNull(groups = OnCreate.class, message = "El tipo de gasto es requerido") IncomeExpenceType getType() {
         return type;
     }
 
-    public void setType(@NotNull(groups = OnCreate.class, message = "El tipo de gasto es requerido") ExpenseTypeEnum type) {
+    public void setType(@NotNull(groups = OnCreate.class, message = "El tipo de gasto es requerido") IncomeExpenceType type) {
         this.type = type;
     }
 
@@ -245,14 +255,6 @@ public class Expense {
     public void setTaxRelated(@NotNull(groups = {OnCreate.class, OnUpdate.class},
             message = "Debe indicar si el gasto es relevante para la declaración de impuestos") Boolean taxRelated) {
         isTaxRelated = taxRelated;
-    }
-
-    public TaxPurposeTypeEnum getTaxType() {
-        return taxType;
-    }
-
-    public void setTaxType(TaxPurposeTypeEnum taxType) {
-        this.taxType = taxType;
     }
 
     public Tax getTax() {
