@@ -1,5 +1,6 @@
 package com.inv.walletCare.logic.entity.user;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.inv.walletCare.logic.entity.rol.Role;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -36,6 +37,7 @@ public class User implements UserDetails {
 
     private String address;
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(nullable = false)
     private String password;
     @Column(name = "password_change_required")

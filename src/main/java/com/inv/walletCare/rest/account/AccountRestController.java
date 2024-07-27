@@ -1,7 +1,11 @@
 package com.inv.walletCare.rest.account;
 
 import com.inv.walletCare.logic.entity.Response;
-import com.inv.walletCare.logic.entity.account.*;
+import com.inv.walletCare.logic.entity.account.Account;
+import com.inv.walletCare.logic.entity.account.AccountRepository;
+import com.inv.walletCare.logic.entity.account.AccountTypeEnum;
+import com.inv.walletCare.logic.entity.accountUser.AccountUser;
+import com.inv.walletCare.logic.entity.accountUser.AccountUserRespository;
 import com.inv.walletCare.logic.entity.email.Email;
 import com.inv.walletCare.logic.entity.email.EmailSenderService;
 import com.inv.walletCare.logic.entity.user.User;
@@ -12,6 +16,7 @@ import com.inv.walletCare.logic.validation.OnUpdate;
 import jakarta.validation.ValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.MailException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
@@ -19,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Controller for account-related operations.
@@ -113,14 +119,6 @@ public class AccountRestController {
             throw new FieldValidationException("name", "El nombre de la cuenta que has elegido ya está en uso. Por favor, ingresa uno diferente");
         }
 
-        // Change the default account to non-default if the new account is set as default
-        if (account.isDefault()) {
-            accountRepository.findDefaultAccountByOwnerId(currentUser.getId()).ifPresent(defaultAccount -> {
-                defaultAccount.setDefault(false);
-                accountRepository.save(defaultAccount);
-            });
-        }
-
         Account newAccount = new Account();
         newAccount.setName(account.getName());
         newAccount.setDescription(account.getDescription());
@@ -181,13 +179,49 @@ public class AccountRestController {
         if (existingAccount.isEmpty()) {
             throw new IllegalArgumentException("La cuenta no se encontró o no pertenece al usuario actual.");
         }
+        
+        // Validate that the account name is unique for the user
+        var existingAccountName = accountRepository.findByNameAndOwnerId(account.getName(), currentUser.getId());
+        if (existingAccountName.isPresent()) {
+            throw new FieldValidationException("name", "El nombre de la cuenta que has elegido ya está en uso. Por favor, ingresa uno diferente");
+        }
+        
+        // Checks if the account is shared and notifies all members.
+        if (existingAccount.get().getType() == AccountTypeEnum.SHARED) {
+            Optional<List<AccountUser>> accountUsers = accountUserRepository.findAllByAccountID(id);
+            
+            if (accountUsers.isPresent()) {
+                // Send email parallelly to all members
+                List<CompletableFuture<Void>> futures = new ArrayList<>();
+                for (AccountUser accountUser : accountUsers.get()) {
+                    futures.add(CompletableFuture.runAsync(() -> {
+                        try {
+                            Email emailDetails = new Email();
+                            emailDetails.setTo(accountUser.getUser().getEmail());
+                            emailDetails.setSubject("Actualización de Cuenta Compartida");
+                            Map<String, String> params = new HashMap<>();
+                            params.put("accountOwnerName", currentUser.getEmail());
+                            params.put("memberName", accountUser.getUser().getEmail());
+                            params.put("accountName", existingAccount.get().getName());
+                            emailSenderService.sendEmail(emailDetails, "UpdateSharedAccount", params);
+                        } catch (MailException e) {
+                            // Log and continue with the next user
+                            System.err.println("Error sending email: " + e.getMessage());
+                        } catch (Exception e) {
+                            throw new RuntimeException("Error al enviar la notificación de actualización de cuenta compartida.", e);
+                        }
+                    }));
+                }
+                // Wait for all to complete
+                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+            }
+        }
 
         existingAccount.get().setUpdatedAt(new Date());
         existingAccount.get().setName(account.getName());
         existingAccount.get().setDescription(account.getDescription());
         return accountRepository.save(existingAccount.get());
     }
-
 
     /**
      * Retreives the list of all members of the shared account
@@ -234,18 +268,23 @@ public class AccountRestController {
      * @throws Exception handles the all validation exceptions
      */
     @PostMapping("/inviteToSharedAccount")
-    public void inviteToSharedAccount(@RequestBody AccountUser accountUser) throws Exception {
+    public AccountUser inviteToSharedAccount(@RequestBody AccountUser accountUser) throws Exception {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
         Optional<User> invitedUser = userRepository.findByEmail(accountUser.getUser().getEmail());
-
         if (invitedUser.isEmpty()) {
             throw new Exception("El usuario que ha intentado invitar no existe");
         }
+
+        if (currentUser.getId() == invitedUser.get().getId()) {
+            throw new Exception("No puedes invitarte a ti mismo a una cuenta compartida");
+        }
+
+        AccountUser newAccountUser = null;
         Optional<AccountUser> sharedAccount = accountUserRepository.findByUserIdAndAccountId(accountUser.getAccount().getId(), invitedUser.get().getId());
         Optional<Account> baseAccount = accountRepository.findById(accountUser.getAccount().getId());
         if (sharedAccount.isEmpty()) {
-            AccountUser newAccountUser = new AccountUser();
+            newAccountUser = new AccountUser();
             newAccountUser.setAccount(accountRepository.findById(accountUser.getAccount().getId()).get());
             newAccountUser.setUser(invitedUser.get());
             newAccountUser.setActive(true);
@@ -253,12 +292,16 @@ public class AccountRestController {
             newAccountUser.setInvitationStatus(1);
             accountUserRepository.save(newAccountUser);
         } else {
-            if (sharedAccount.get().getInvitationStatus() == 2 && !sharedAccount.get().getDeleted()) {
-                throw new Exception("El usuario ya ha aceptado una invitación para esta cuenta y forma parte de la misma");
+            if (sharedAccount.get().getInvitationStatus() == 1) {
+                throw new Exception("La invitación ya ha sido enviada a este usuario");
             }
-            if ((sharedAccount.get().getInvitationStatus() == 1 || sharedAccount.get().getInvitationStatus() == 3) && sharedAccount.get().getDeleted()) {
-                sharedAccount.get().setInvitationStatus(1);
-                accountUserRepository.save(sharedAccount.get());
+
+            if (sharedAccount.get().getInvitationStatus() == 2) {
+                throw new Exception("El usuario ya forma parte de esta cuenta");
+            }
+
+            if (sharedAccount.get().getInvitationStatus() == 3) {
+                throw new Exception("El usuario ha rechazado la invitación a esta cuenta");
             }
         }
 
@@ -268,6 +311,7 @@ public class AccountRestController {
         Map<String, String> params = new HashMap<>();
         params.put("accountOwner", currentUser.getEmail());
         params.put("invitedUser", accountUser.getUser().getEmail());
+        params.put("accountName", baseAccount.get().getName());
         params.put("invitationHandlerLink",
                 "http://localhost:4200/invitation" +
                         "?host=" + baseAccount.get().getOwner().getEmail() +
@@ -275,11 +319,13 @@ public class AccountRestController {
                         "&accountId=" + baseAccount.get().getId() +
                         "&userId=" + invitedUser.get().getId());
         emailSenderService.sendEmail(emailDetails, "InviteToShareAccount", params);
+        return newAccountUser;
     }
 
     /**
      * This controller handles the invitattion status to the shared account
-     * @param id is the account id
+     *
+     * @param id          is the account id
      * @param accountUser is the invitation with the status
      * @return returns a message with the status of the invitation
      */
@@ -300,6 +346,8 @@ public class AccountRestController {
                             existingAccount.setJoinedAt(new Date());
                         } else if (accountUser.getInvitationStatus() == 3) {
                             gResponse.setMessage("La invitación se rechazó correctamente.");
+                        } else {
+                            throw new ValidationException("El estado de la invitación seleccionado no fue reconocido, favor intentntalo nuevamente. ");
                         }
                         return accountUserRepository.save(existingAccount);
                     });
@@ -309,10 +357,69 @@ public class AccountRestController {
                     throw new ValidationException("Esta invitación ya fue aceptada con anterioridad, revisa tus cuentas para poder ver su información.");
                 case 3:
                     throw new ValidationException("Esta invitación ya fue rechazada con anterioridad, solicita que te inviten de nuevo.");
+                case 4:
+                    throw new ValidationException("Ya te habías salido de esta cuenta compartida, si quieres entrar nuevamente solicita al dueño una nueva invitación.");
                 default:
-                    throw new ValidationException("El estado de la invitación no es reconocido por el sistema,  solicita que te inviten de nuevo.");
+                    throw new ValidationException("El estado de la invitación no es reconocido por el sistema,  solicita que la inviten de nuevo.");
             }
         }
         return ResponseEntity.ok(gResponse);
+    }
+
+    /**
+     * @param id
+     * @param accountUser
+     * @return
+     */
+    @PutMapping("/leave-account/{id}")
+    public ResponseEntity<Response> leaveSharedAccount(@Validated(OnUpdate.class) @PathVariable Long id, @RequestBody AccountUser accountUser) throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+        var sharedAccount = accountUserRepository.findByUserIdAndAccountId(id, accountUser.getUser().getId());
+        var account = accountRepository.findById(sharedAccount.get().getAccount().getId());
+
+        String message;
+        if (sharedAccount.isEmpty()) {
+            throw new ValidationException("No se ha encontrado la cuenta compartida indicada, favor intentalo de nuevo.");
+        }
+
+        switch (sharedAccount.get().getInvitationStatus()) {
+            case 2:
+                sharedAccount.map(existingAccount -> {
+                    existingAccount.setInvitationStatus(4);
+                    existingAccount.setLeftAt(new Date());
+                    existingAccount.setActive(false);
+                    return accountUserRepository.save(existingAccount);
+                });
+                break;
+            case 3:
+                throw new ValidationException("Esta invitación a esta cuenta compartida ya fue rechazada con anterioridad, así que no formas parte de la misma.");
+            case 4:
+                throw new ValidationException("Ya te habías salido de esta cuenta compartida, así que no formas parte de la misma.");
+            default:
+                throw new ValidationException("Tu estado en esta cuenta compartida no esta reconocido por el sistema, intenta esta acción mas tarde.");
+
+        }
+        var mail = new Email();
+        mail.setSubject("Notificación de salida de cuenta compartida.");
+
+        var params = new HashMap<String, String>();
+        params.put("accountOwner", account.get().getOwner().getEmail());
+        params.put("accountMember", sharedAccount.get().getUser().getEmail());
+        params.put("accountName", account.get().getName());
+
+
+        //The memeber is leaving the shared account
+        if (Objects.equals(currentUser.getId(), accountUser.getUser().getId())) {
+            mail.setTo(sharedAccount.get().getAccount().getOwner().getEmail());
+            emailSenderService.sendEmail(mail, "LeaveSharedAccount", params);
+            message = "Te has salido correctamente de la cuenta compartida, recuerda que ahora todos los gastos, ingresos y ahorros pasan a tu cuenta principal.";
+        } else {
+            //The Owner remove the memeber from the shared account
+            mail.setTo(sharedAccount.get().getUser().getEmail());
+            emailSenderService.sendEmail(mail, "RemoveFromSharedAccount", params);
+            message = "Se ha eliminado correctamente al usuario " + sharedAccount.get().getUser().getEmail() + "de la cuenta compartida. ";
+        }
+        return ResponseEntity.ok(new Response(message));
     }
 }
