@@ -106,14 +106,6 @@ public class AccountRestController {
             throw new FieldValidationException("name", "El nombre de la cuenta que has elegido ya está en uso. Por favor, ingresa uno diferente");
         }
 
-        // Change the default account to non-default if the new account is set as default
-        if (account.isDefault()) {
-            accountRepository.findDefaultAccountByOwnerId(currentUser.getId()).ifPresent(defaultAccount -> {
-                defaultAccount.setDefault(false);
-                accountRepository.save(defaultAccount);
-            });
-        }
-
         Account newAccount = new Account();
         newAccount.setName(account.getName());
         newAccount.setDescription(account.getDescription());
