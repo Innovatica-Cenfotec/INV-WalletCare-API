@@ -7,5 +7,7 @@ public enum FrequencyTypeEnum {
     MONTHLY,
     ANNUAL,
     BIWEEKLY,
+    WEEKLY,
+    DAILY,
     OTHER
 }
