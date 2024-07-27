@@ -1,7 +1,9 @@
 package com.inv.walletCare.rest.account;
 
 import com.inv.walletCare.logic.entity.Response;
-import com.inv.walletCare.logic.entity.account.*;
+import com.inv.walletCare.logic.entity.account.Account;
+import com.inv.walletCare.logic.entity.account.AccountRepository;
+import com.inv.walletCare.logic.entity.account.AccountTypeEnum;
 import com.inv.walletCare.logic.entity.accountUser.AccountUser;
 import com.inv.walletCare.logic.entity.accountUser.AccountUserRespository;
 import com.inv.walletCare.logic.entity.email.Email;
@@ -23,7 +25,6 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 /**
  * Controller for account-related operations.
@@ -61,7 +62,7 @@ public class AccountRestController {
 
         // Retrieve the inactive accounts for the current user
         accountUserRepository.findAllByUserId(currentUser.getId()).ifPresent(accountUser -> {
-            if (accountUser.getInvitationStatus() == 1) {
+            if (accountUser.getInvitationStatus() == 2) {
                 accounts.add(accountUser.getAccount());
             }
         });
@@ -186,10 +187,17 @@ public class AccountRestController {
         if (existingAccount.isEmpty()) {
             throw new IllegalArgumentException("La cuenta no se encontró o no pertenece al usuario actual.");
         }
-
+        
+        // Validate that the account name is unique for the user
+        var existingAccountName = accountRepository.findByNameAndOwnerId(account.getName(), currentUser.getId());
+        if (existingAccountName.isPresent()) {
+            throw new FieldValidationException("name", "El nombre de la cuenta que has elegido ya está en uso. Por favor, ingresa uno diferente");
+        }
+        
         // Checks if the account is shared and notifies all members.
         if (existingAccount.get().getType() == AccountTypeEnum.SHARED) {
             Optional<List<AccountUser>> accountUsers = accountUserRepository.findAllByAccountID(id);
+            
             if (accountUsers.isPresent()) {
                 // Send email parallelly to all members
                 List<CompletableFuture<Void>> futures = new ArrayList<>();

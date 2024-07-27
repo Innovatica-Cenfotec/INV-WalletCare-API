@@ -7,7 +7,13 @@ import java.util.List;
 import java.util.Optional;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
-    @Query("SELECT u FROM Transaction u WHERE u.account.id = ?1 AND u.isDeleted = false")
+    /**
+     * return all the transactions by account
+     *
+     * @param accountId is the account id
+     * @return returns all transactions for the account
+     */
+    @Query("SELECT u FROM Transaction u WHERE u.account.id = ?1")
     Optional<List<Transaction>> findAllByAccountId(Long accountId);
 
 }
