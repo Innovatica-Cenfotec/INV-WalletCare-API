@@ -151,6 +151,12 @@ public class Expense {
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted;
 
+    /**
+     * Default constructor.
+     */
+    public Expense() {
+    }
+
     public @NegativeOrZero(groups = OnUpdate.class, message = "El ID es requerido para actualizar un gasto") Long getId() {
         return id;
     }
