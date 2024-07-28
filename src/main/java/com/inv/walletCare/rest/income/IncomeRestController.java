@@ -132,7 +132,7 @@ public class IncomeRestController {
         tran.setType(TransactionTypeEnum.INCOME);
         tran.setUpdatedAt(null);
         tran.setAccount(account);
-        tran.setExpenseAccount(null);
+        tran.setExpense(null);
         tran.setIncomeAllocation(null);
         tran.setOwner(currentUser);
         tran.setSavingAllocation(null);
