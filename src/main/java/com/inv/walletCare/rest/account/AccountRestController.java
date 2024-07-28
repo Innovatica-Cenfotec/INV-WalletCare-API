@@ -182,7 +182,7 @@ public class AccountRestController {
         
         // Validate that the account name is unique for the user
         var existingAccountName = accountRepository.findByNameAndOwnerId(account.getName(), currentUser.getId());
-        if (existingAccountName.isPresent()) {
+        if (existingAccountName.isPresent()&& existingAccountName.get().getId()!=existingAccount.get().getId()) {
             throw new FieldValidationException("name", "El nombre de la cuenta que has elegido ya está en uso. Por favor, ingresa uno diferente");
         }
         
