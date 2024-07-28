@@ -428,6 +428,13 @@ public class AccountRestController {
             });
         }
 
+        for (var expense : expensesToTransfer.get()){
+            expense.map(updatedExpense ->{
+               updatedExpense.setAccount(mainAccount);
+               return expenseRepository.save(updatedExpense);
+            });
+        }
+
 
         //Sends the notification email
         var mail = new Email();
