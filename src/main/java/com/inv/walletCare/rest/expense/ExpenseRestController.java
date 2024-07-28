@@ -119,6 +119,7 @@ public class ExpenseRestController {
                 throw new FieldValidationException("account", "La cuenta con el ID " + expense.getAccount().getId() + " no existe en el sistema.");
             }
         }
+
         Expense newExpense = new Expense();
         newExpense.setName(expense.getName());
         newExpense.setAmount(expense.getAmount());
@@ -178,11 +179,10 @@ public class ExpenseRestController {
         }
 
         Account account = accountRepository.findById(expense.getAccount().getId()).get();
-        /*
+
         // Checks if the account is shared and notifies all members.
         if (account.getType() == AccountTypeEnum.SHARED) {
-            Optional<List<AccountUser>> accountUsers = accountUserRepository.findAllByAccountID(id);
-
+            Optional<List<AccountUser>> accountUsers = accountUserRepository.findAllByAccountID(account.getId());
 
             if (accountUsers.isPresent()) {
                 // Send email parallelly to all members
@@ -210,7 +210,6 @@ public class ExpenseRestController {
                 CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
             }
         }
-        */
 
         existingExpense.get().setUpdatedAt(new Date());
         existingExpense.get().setOwner(currentUser);
@@ -245,6 +244,7 @@ public class ExpenseRestController {
         }
 
         expense.get().setDeleted(true);
+        expense.get().setOwner(currentUser);
         expense.get().setUpdatedAt(new Date());
         expense.get().setDeletedAt(new Date());
         expenseRepository.save(expense.get());
