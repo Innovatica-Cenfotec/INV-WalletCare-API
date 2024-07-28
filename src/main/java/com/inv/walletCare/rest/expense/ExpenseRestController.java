@@ -1,12 +1,17 @@
 package com.inv.walletCare.rest.expense;
 
 import com.inv.walletCare.logic.entity.FrequencyTypeEnum;
+import com.inv.walletCare.logic.entity.IncomeExpenceType;
 import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.account.AccountRepository;
 import com.inv.walletCare.logic.entity.expense.Expense;
 import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
+import com.inv.walletCare.logic.entity.helpers.Helper;
 import com.inv.walletCare.logic.entity.tax.Tax;
 import com.inv.walletCare.logic.entity.tax.TaxRepository;
+import com.inv.walletCare.logic.entity.transaction.Transaction;
+import com.inv.walletCare.logic.entity.transaction.TransactionService;
+import com.inv.walletCare.logic.entity.transaction.TransactionTypeEnum;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.exceptions.FieldValidationException;
 import com.inv.walletCare.logic.validation.OnCreate;
@@ -16,6 +21,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -32,6 +38,9 @@ public class ExpenseRestController {
 
     @Autowired
     private TaxRepository taxRepository;
+
+    @Autowired
+    private TransactionService transactionService;
 
     @GetMapping
     public List<Expense> getExpenses() {
@@ -58,7 +67,7 @@ public class ExpenseRestController {
     }
 
     @PostMapping
-    public Expense createExpense(@Validated(OnCreate.class) @RequestBody Expense expense) {
+    public Expense createExpense(@Validated(OnCreate.class) @RequestBody Expense expense) throws Exception {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) authentication.getPrincipal();
 
@@ -106,7 +115,27 @@ public class ExpenseRestController {
         newExpense.setUpdatedAt(new Date());
         newExpense.setDeleted(false);
         newExpense.setType(expense.getType());
+        var expenseCreated = expenseRepository.save(newExpense);
 
-        return expenseRepository.save(newExpense);
+        if(!expenseCreated.isTemplate() && expenseCreated.getType().equals(IncomeExpenceType.UNIQUE)){
+            var tran = new Transaction();
+            tran.setAmount(Helper.reverse(expenseCreated.getAmount()));
+            tran.setCreatedAt(new Date());
+            tran.setDeletedAt(null);
+            tran.setDescription("Gasto: " + expenseCreated.getName());
+            tran.setDeleted(false);
+            tran.setPreviousBalance(new BigDecimal(0));
+            tran.setType(TransactionTypeEnum.EXPENSE);
+            tran.setUpdatedAt(null);
+            tran.setAccount(expense.getAccount());
+            tran.setExpense(expenseCreated);
+            tran.setIncomeAllocation(null);
+            tran.setOwner(user);
+            tran.setSavingAllocation(null);
+            transactionService.saveTransaction(tran);
+        }
+
+
+        return expenseCreated;
     }
 }
