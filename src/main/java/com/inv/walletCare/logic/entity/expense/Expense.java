@@ -3,6 +3,7 @@ package com.inv.walletCare.logic.entity.expense;
 import com.inv.walletCare.logic.entity.AmountTypeEnum;
 import com.inv.walletCare.logic.entity.FrequencyTypeEnum;
 import com.inv.walletCare.logic.entity.IncomeExpenceType;
+import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.tax.Tax;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.expenseCategory.ExpenseCategory;
@@ -34,6 +35,10 @@ public class Expense {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "owner_id", referencedColumnName = "id", nullable = false)
     private User owner;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "account_id", referencedColumnName = "id", nullable = false)
+    private Account account;
 
     /**
      * Category associated with the expense.
@@ -290,5 +295,17 @@ public class Expense {
 
     public void setDeleted(boolean deleted) {
         isDeleted = deleted;
+    }
+
+    public Account getAccount() {
+        return account;
+    }
+
+    public void setAccount(Account account) {
+        this.account = account;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
     }
 }
