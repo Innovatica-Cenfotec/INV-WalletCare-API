@@ -1,6 +1,7 @@
 package com.inv.walletCare.rest.expense;
 
 import com.inv.walletCare.logic.entity.FrequencyTypeEnum;
+import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.account.AccountRepository;
 import com.inv.walletCare.logic.entity.expense.Expense;
 import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
@@ -46,6 +47,16 @@ public class ExpenseRestController {
         return expenseRepository.findAllByUserId(user.getId());
     }
 
+    @GetMapping("/filter")
+    public List<Expense> getExpensesByAccount(@RequestParam long account) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+
+        System.out.println("sgasgagasg");
+
+        return expenseRepository.findByAccountAndUserId(account, user.getId());
+    }
+
     @GetMapping("/{id}")
     public Expense getExpenseById(@PathVariable long id) {
         Optional<Expense> expense = expenseRepository.findById(id);
@@ -72,6 +83,8 @@ public class ExpenseRestController {
         if (existingExpense.isPresent()) {
             throw new FieldValidationException("name", "El nombre del gasto que ha ingresado ya está en uso. Por favor, ingrese uno diferente.");
         }
+
+        expense.setAccount(accountRepository.findById(Long.valueOf(2)).get());
 
         if (expense.isTaxRelated()) {
             Optional<Tax> tax = taxRepository.findById(expense.getTax().getId());
