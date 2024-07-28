@@ -75,7 +75,7 @@ public class AccountRestController {
         User currentUser = (User) authentication.getPrincipal();
 
         // Check if the account belongs to the current user
-        if (account.get().getOwner().getId() == currentUser.getId()) {
+        if (currentUser.getId().equals(account.get().getOwner().getId())) {
             return account.get();
         }
 
@@ -193,12 +193,12 @@ public class AccountRestController {
         }
 
         // if the current user is the owner of the account, return all users
-        if (account.get().getOwner().getId() == currentUser.getId()) {
+        if (currentUser.getId().equals(account.get().getOwner().getId())) {
             return accountUsers.get();
         }
 
         // if the current user is a member of the account, return all users
-        if (accountUsers.get().stream().anyMatch(accountUser -> accountUser.getUser().getId() == currentUser.getId())) {
+        if (accountUsers.get().stream().anyMatch(accountUser -> currentUser.getId().equals(accountUser.getUser().getId()))) {
             return accountUsers.get();
         }
 
