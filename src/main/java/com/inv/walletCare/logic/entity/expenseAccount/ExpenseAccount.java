@@ -2,6 +2,7 @@ package com.inv.walletCare.logic.entity.expenseAccount;
 
 import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.expense.Expense;
+import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.validation.OnCreate;
 import com.inv.walletCare.logic.validation.OnUpdate;
 import jakarta.persistence.*;
@@ -23,6 +24,13 @@ public class ExpenseAccount {
     @NegativeOrZero(groups = OnUpdate.class,
             message = "El ID es requerido para actualizar la asociación de gasto y cuenta")
     private Long id;
+
+    /**
+     * Owner of the expense.
+     */
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "owner_id", referencedColumnName = "id", nullable = false)
+    private User owner;
 
     /**
      * Expense associated with the account.
