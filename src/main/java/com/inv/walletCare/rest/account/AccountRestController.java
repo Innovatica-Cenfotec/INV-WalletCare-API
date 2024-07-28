@@ -8,6 +8,7 @@ import com.inv.walletCare.logic.entity.accountUser.AccountUser;
 import com.inv.walletCare.logic.entity.accountUser.AccountUserRespository;
 import com.inv.walletCare.logic.entity.email.Email;
 import com.inv.walletCare.logic.entity.email.EmailSenderService;
+import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
 import com.inv.walletCare.logic.entity.incomeAllocation.IncomeAllocationRepository;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.entity.user.UserRepository;
@@ -36,7 +37,10 @@ import java.util.concurrent.CompletableFuture;
 public class AccountRestController {
 
     @Autowired
-    IncomeAllocationRepository incomeAllocationRepository;
+    private IncomeAllocationRepository incomeAllocationRepository;
+
+    @Autowired
+    private ExpenseRepository expenseRepository;
     @Autowired
     private AccountRepository accountRepository;
     @Autowired
@@ -45,6 +49,7 @@ public class AccountRestController {
     private EmailSenderService emailSenderService;
     @Autowired
     private UserRepository userRepository;
+
 
     /**
      * Retrieves a list of {@link Account} objects associated with the currently authenticated user.
@@ -403,14 +408,23 @@ public class AccountRestController {
 
         //transfer the incomes and expenses to the main account of the removed user
         var incomesToTransfer = incomeAllocationRepository.findAllByAccountIdAndOwner(accountUser.getUser().getId(), account.get().getId());
+        var expensesToTransfer = expenseRepository.findAllByAccountIdAndOwner(accountUser.getUser().getId(), account.get().getId());
         var accountsDeletedUser = accountRepository.findAllByOwnerId(accountUser.getUser().getId()).get();
         Account mainAccount = accountsDeletedUser.stream().filter(Account::isDefault).findFirst().orElse(null);
 
+        //incomes from
         for (var income : incomesToTransfer.get()) {
             income.map(updatedIncomeAllocation ->
             {
                updatedIncomeAllocation.setAccount(mainAccount);
                return incomeAllocationRepository.save(updatedIncomeAllocation);
+            });
+        }
+
+        for (var expense : expensesToTransfer.get()){
+            expense.map(updatedExpense ->{
+               updatedExpense.setAccount(mainAccount);
+               return expenseRepository.save(updatedExpense);
             });
         }
 

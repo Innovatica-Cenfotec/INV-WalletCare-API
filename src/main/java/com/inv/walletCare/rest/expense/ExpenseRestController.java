@@ -1,9 +1,12 @@
 package com.inv.walletCare.rest.expense;
 
 import com.inv.walletCare.logic.entity.FrequencyTypeEnum;
+import com.inv.walletCare.logic.entity.IncomeExpenceType;
+import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.account.AccountRepository;
 import com.inv.walletCare.logic.entity.expense.Expense;
 import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
+import com.inv.walletCare.logic.entity.helpers.Helper;
 import com.inv.walletCare.logic.entity.tax.Tax;
 import com.inv.walletCare.logic.entity.tax.TaxRepository;
 import com.inv.walletCare.logic.entity.transaction.Transaction;
@@ -114,9 +117,9 @@ public class ExpenseRestController {
         newExpense.setType(expense.getType());
         var expenseCreated = expenseRepository.save(newExpense);
 
-        if(!expenseCreated.isTemplate()){
+        if(!expenseCreated.isTemplate() && expenseCreated.getType().equals(IncomeExpenceType.UNIQUE)){
             var tran = new Transaction();
-            tran.setAmount(expenseCreated.getAmount());
+            tran.setAmount(Helper.reverse(expenseCreated.getAmount()));
             tran.setCreatedAt(new Date());
             tran.setDeletedAt(null);
             tran.setDescription("Gasto: " + expenseCreated.getName());
