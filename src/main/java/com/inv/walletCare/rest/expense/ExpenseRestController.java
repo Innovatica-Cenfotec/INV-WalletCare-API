@@ -52,9 +52,7 @@ public class ExpenseRestController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) authentication.getPrincipal();
 
-        System.out.println("sgasgagasg");
-
-        return expenseRepository.findByAccountAndUserId(account, user.getId());
+        return expenseRepository.findByAccount(account);
     }
 
     @GetMapping("/{id}")
@@ -67,7 +65,7 @@ public class ExpenseRestController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) authentication.getPrincipal();
 
-        if (expense.get().getOwner().getId() != user.getId()) {
+        if (!user.getId().equals(expense.get().getOwner().getId())) {
             throw new IllegalArgumentException("Gasto no encontrado o no pertenece al usuario actual");
         }
 
@@ -84,7 +82,7 @@ public class ExpenseRestController {
             throw new FieldValidationException("name", "El nombre del gasto que ha ingresado ya está en uso. Por favor, ingrese uno diferente.");
         }
 
-        expense.setAccount(accountRepository.findById(Long.valueOf(2)).get());
+        expense.setAccount(accountRepository.findById(Long.valueOf(5)).get());
 
         if (expense.isTaxRelated()) {
             Optional<Tax> tax = taxRepository.findById(expense.getTax().getId());
@@ -92,7 +90,7 @@ public class ExpenseRestController {
                 throw new FieldValidationException("tax", "El impuesto es requerido para los gastos relacionados con impuestos.");
             }
 
-            if (tax.get().getOwner().getId() != user.getId()) {
+            if (!user.getId().equals(tax.get().getOwner().getId())) {
                 throw new FieldValidationException("tax", "El impuesto con el ID " + expense.getTax().getId() + " no existe o no pertenece al usuario actual.");
             }
 
