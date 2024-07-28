@@ -90,6 +90,7 @@ public class ExpenseRestController {
         newExpense.setAmount(expense.getAmount());
         newExpense.setAmountType(expense.getAmountType());
         newExpense.setOwner(user);
+        newExpense.setAccount(expense.getAccount());
         newExpense.setDescription(expense.getDescription());
         newExpense.setTemplate(expense.isTemplate());
         newExpense.setFrequency(expense.getFrequency());
