@@ -3,16 +3,14 @@ package com.inv.walletCare.logic.entity.expense;
 import com.inv.walletCare.logic.entity.AmountTypeEnum;
 import com.inv.walletCare.logic.entity.FrequencyTypeEnum;
 import com.inv.walletCare.logic.entity.IncomeExpenceType;
+import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.tax.Tax;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.expenseCategory.ExpenseCategory;
 import com.inv.walletCare.logic.validation.OnCreate;
 import com.inv.walletCare.logic.validation.OnUpdate;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NegativeOrZero;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -37,6 +35,10 @@ public class Expense {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "owner_id", referencedColumnName = "id", nullable = false)
     private User owner;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "account_id", referencedColumnName = "id", nullable = false)
+    private Account account;
 
     /**
      * Category associated with the expense.
@@ -70,8 +72,7 @@ public class Expense {
      * Amount of the expense.
      */
     @Column(name = "amount", nullable = false)
-    @NotNull(groups = {OnCreate.class, OnUpdate.class }, message = "El monto del gasto es requerido")
-    @Size(groups = {OnCreate.class, OnUpdate.class }, min = 0, message = "El monto del gasto debe ser mayor a 0")
+    @Min(groups = {OnCreate.class, OnUpdate.class }, value = 0, message = "El monto del gasto debe ser mayor a 0")
     private BigDecimal amount;
 
     /**
@@ -87,7 +88,7 @@ public class Expense {
      */
     @Column(name = "is_template", nullable = false)
     @NotNull(groups = OnCreate.class, message = "Debe indicar si el gasto es una plantilla")
-    private Boolean isTemplate;
+    private boolean isTemplate;
 
     /**
      * Type of expense: "unique" or "recurring".
@@ -102,7 +103,6 @@ public class Expense {
      */
     @Column(name = "frequency", length = 50)
     @Enumerated(EnumType.STRING)
-    @NotNull(groups = OnCreate.class, message = "La frecuencia del gasto es requerida")
     private FrequencyTypeEnum frequency;
 
     /**
@@ -117,7 +117,7 @@ public class Expense {
     @Column(name = "is_tax_related", nullable = false)
     @NotNull(groups = {OnCreate.class, OnUpdate.class },
             message = "Debe indicar si el gasto es relevante para la declaración de impuestos")
-    private Boolean isTaxRelated;
+    private boolean isTaxRelated;
 
 
     /**
@@ -149,7 +149,7 @@ public class Expense {
      * Flag indicating whether the expense is deleted.
      */
     @Column(name = "is_deleted", nullable = false)
-    private Boolean isDeleted;
+    private boolean isDeleted;
 
     public @NegativeOrZero(groups = OnUpdate.class, message = "El ID es requerido para actualizar un gasto") Long getId() {
         return id;
@@ -199,11 +199,11 @@ public class Expense {
         this.description = description;
     }
 
-    public @NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "El monto del gasto es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 0, message = "El monto del gasto debe ser mayor a 0") BigDecimal getAmount() {
+    public @Min(groups = {OnCreate.class, OnUpdate.class}, value = 0, message = "El monto del ingreso debe ser mayor a 0") BigDecimal getAmount() {
         return amount;
     }
 
-    public void setAmount(@NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "El monto del gasto es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 0, message = "El monto del gasto debe ser mayor a 0") BigDecimal amount) {
+    public void setAmount(@Min(groups = {OnCreate.class, OnUpdate.class}, value = 0, message = "El monto del ingreso debe ser mayor a 0") BigDecimal amount) {
         this.amount = amount;
     }
 
@@ -215,11 +215,11 @@ public class Expense {
         this.amountType = amountType;
     }
 
-    public @NotNull(groups = OnCreate.class, message = "Debe indicar si el gasto es una plantilla") Boolean getTemplate() {
+    public @NotNull(groups = OnCreate.class, message = "Debe indicar si el gasto es una plantilla") boolean isTemplate() {
         return isTemplate;
     }
 
-    public void setTemplate(@NotNull(groups = OnCreate.class, message = "Debe indicar si el gasto es una plantilla") Boolean template) {
+    public void setTemplate(@NotNull(groups = OnCreate.class, message = "Debe indicar si el gasto es una plantilla") boolean template) {
         isTemplate = template;
     }
 
@@ -231,11 +231,11 @@ public class Expense {
         this.type = type;
     }
 
-    public @NotNull(groups = OnCreate.class, message = "La frecuencia del gasto es requerida") FrequencyTypeEnum getFrequency() {
+    public FrequencyTypeEnum getFrequency() {
         return frequency;
     }
 
-    public void setFrequency(@NotNull(groups = OnCreate.class, message = "La frecuencia del gasto es requerida") FrequencyTypeEnum frequency) {
+    public void setFrequency(FrequencyTypeEnum frequency) {
         this.frequency = frequency;
     }
 
@@ -248,12 +248,12 @@ public class Expense {
     }
 
     public @NotNull(groups = {OnCreate.class, OnUpdate.class},
-            message = "Debe indicar si el gasto es relevante para la declaración de impuestos") Boolean getTaxRelated() {
+            message = "Debe indicar si el gasto es relevante para la declaración de impuestos") boolean isTaxRelated() {
         return isTaxRelated;
     }
 
     public void setTaxRelated(@NotNull(groups = {OnCreate.class, OnUpdate.class},
-            message = "Debe indicar si el gasto es relevante para la declaración de impuestos") Boolean taxRelated) {
+            message = "Debe indicar si el gasto es relevante para la declaración de impuestos") boolean taxRelated) {
         isTaxRelated = taxRelated;
     }
 
@@ -289,11 +289,23 @@ public class Expense {
         this.deletedAt = deletedAt;
     }
 
-    public Boolean getDeleted() {
+    public boolean getDeleted() {
         return isDeleted;
     }
 
-    public void setDeleted(Boolean deleted) {
+    public void setDeleted(boolean deleted) {
         isDeleted = deleted;
+    }
+
+    public Account getAccount() {
+        return account;
+    }
+
+    public void setAccount(Account account) {
+        this.account = account;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
     }
 }
