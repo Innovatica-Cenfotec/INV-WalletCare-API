@@ -90,6 +90,11 @@ public class ExpenseRestController {
             if (expense.getFrequency() == FrequencyTypeEnum.OTHER && expense.getScheduledDay() <= 1 || expense.getScheduledDay() >= 31) {
                 throw new FieldValidationException("scheduleDay", "El día programado es requerido para los ingresos relacionados con impuestos.");
             }
+
+            Optional<Account> account = accountRepository.findById(expense.getAccount().getId());
+            if (account.isEmpty()) {
+                throw new FieldValidationException("account", "La cuenta con el ID " + expense.getAccount().getId() + " no existe en el sistema.");
+            }
         }
         Expense newExpense = new Expense();
         newExpense.setName(expense.getName());
