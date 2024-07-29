@@ -16,7 +16,6 @@ import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.exceptions.FieldValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -98,25 +97,25 @@ public class AuthRestController {
     public ResponseEntity<?> registerUser(@RequestBody RegisterUserRequest request) {
         // Validate the user's input
         if (request.getUser().getEmail() == null || request.getUser().getEmail().isEmpty()) {
-            throw new FieldValidationException("email","El correo electrónico es requerido");
+            throw new FieldValidationException("email", "El correo electrónico es requerido");
         }
         if (request.getUser().getPassword() == null || request.getUser().getPassword().isEmpty()) {
-            throw new FieldValidationException("password","La contraseña es requerida");
+            throw new FieldValidationException("password", "La contraseña es requerida");
         }
 
         Optional<User> existingUser = userRepository.findByEmail(request.getUser().getEmail());
         if (existingUser.isPresent()) {
-            throw new FieldValidationException("email","Ya existe una cuenta con este correo.");
+            throw new FieldValidationException("email", "Ya existe una cuenta con este correo.");
         }
 
         existingUser = userRepository.findByNickname(request.getUser().getNickname());
         if (existingUser.isPresent()) {
-            throw new FieldValidationException("nickname","Ya existe una cuenta con este alias.");
+            throw new FieldValidationException("nickname", "Ya existe una cuenta con este alias.");
         }
 
         existingUser = userRepository.findByIdentificationNumber(request.getUser().getIdentificationNumber());
         if (existingUser.isPresent()) {
-            throw new FieldValidationException("identificationNumber","Ya existe una cuenta con este número de identificación.");
+            throw new FieldValidationException("identificationNumber", "Ya existe una cuenta con este número de identificación.");
         }
 
         Optional<Role> optionalRole = roleRepository.findByName(RoleEnum.USER);
@@ -134,34 +133,6 @@ public class AuthRestController {
         user.setPassword(passwordEncoder.encode(request.getUser().getPassword()));
         user.setCreatedAt(new Date());
         user.setUpdatedAt(new Date());
-
-    /**
-     * Registers a new user with email and password, assigning them a default role.
-     *
-     * @param user the user to register
-     * @return ResponseEntity containing the saved user
-     */
-    @PostMapping("/signup")
-    public ResponseEntity<?> registerUser(@RequestBody User user) {
-        // Validate the user's input
-        if (user.getEmail() == null || user.getEmail().isEmpty()) {
-            throw new IllegalArgumentException("Email is required");
-        }
-        if (user.getPassword() == null || user.getPassword().isEmpty()) {
-            throw new IllegalArgumentException("Password is required");
-        }
-
-        Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
-        if (existingUser.isPresent()) {
-            throw new IllegalArgumentException("Email is already in use");
-        }
-
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        Optional<Role> optionalRole = roleRepository.findByName(RoleEnum.USER);
-        if (optionalRole.isEmpty()) {
-            throw new IllegalStateException("Default role USER not found");
-        }
-
         user.setRole(optionalRole.get());
         userRepository.save(user);
 
@@ -175,6 +146,7 @@ public class AuthRestController {
         newAccount.setCreatedAt(new Date());
         newAccount.setUpdatedAt(new Date());
         newAccount.setDeleted(false);
+        newAccount.setDefault(true);
         accountRepository.save(newAccount);
 
         return ResponseEntity.ok(new Response("Usuario registrado exitosamente"));
