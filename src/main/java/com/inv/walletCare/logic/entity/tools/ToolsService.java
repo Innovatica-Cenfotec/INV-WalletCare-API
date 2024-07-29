@@ -1,0 +1,64 @@
+package com.inv.walletCare.logic.entity.tools;
+
+import com.inv.walletCare.logic.entity.account.Account;
+import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
+import com.inv.walletCare.logic.entity.helpers.Helper;
+import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
+import com.inv.walletCare.logic.entity.transaction.TransactionRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.util.Date;
+
+@Service
+public class ToolsService {
+
+    @Autowired
+    private TransactionRepository transactionRepository;
+
+    @Autowired
+    private ExpenseRepository expenseRepository;
+
+    @Autowired
+    private RecurrenceRepository recurrenceRepository;
+
+    public BalanceDTO balancesCalculations(Account account) {
+        var transactions = transactionRepository.findAllByAccountId(account.getId());
+        var reccurrentTransactions = recurrenceRepository.findAllByAccountId(account.getId());
+        double monthlyExpense = 0;
+        double monthlyIncome = 0;
+        double recurrentExpense = 0;
+        double recurrentIncome = 0;
+
+        for (var tran : transactions.get()) {
+            switch (tran.getType()) {
+                case EXPENSE:
+                    if (tran.getCreatedAt().getYear() == new Date().getYear()) {
+                        if (tran.getCreatedAt().getMonth() == new Date().getMonth()) {
+                            monthlyExpense = monthlyExpense + tran.getAmount().doubleValue();
+                        }
+                    }
+                    break;
+                case INCOME:
+                    if (tran.getCreatedAt().getYear() == new Date().getYear()) {
+                        if (tran.getCreatedAt().getMonth() == new Date().getMonth()) {
+                            monthlyIncome = monthlyIncome + tran.getAmount().doubleValue();
+                        }
+                    }
+                    break;
+            }
+        }
+
+        for (var exp : reccurrentTransactions.get()) {
+            if (exp.get().getExpense() != null) {
+                recurrentExpense = recurrentExpense + exp.get().getExpense().getAmount().doubleValue();
+            }else if (exp.get().getIncome() != null){
+                recurrentIncome = recurrentIncome + exp.get().getIncome().getAmount().doubleValue();
+            }
+        }
+
+
+        return new BalanceDTO(new BigDecimal(monthlyExpense), Helper.reverse(new BigDecimal(recurrentExpense)), new BigDecimal(monthlyIncome), new BigDecimal(recurrentIncome));
+    }
+}

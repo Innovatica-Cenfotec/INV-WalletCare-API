@@ -1,9 +1,8 @@
 package com.inv.walletCare.logic.entity.transaction;
 
-import com.inv.walletCare.logic.entity.incomeAllocation.IncomeAllocation;
 import com.inv.walletCare.logic.entity.account.Account;
-import com.inv.walletCare.logic.entity.expenseAccount.ExpenseAccount;
-import com.inv.walletCare.logic.entity.saving.Saving;
+import com.inv.walletCare.logic.entity.expense.Expense;
+import com.inv.walletCare.logic.entity.incomeAllocation.IncomeAllocation;
 import com.inv.walletCare.logic.entity.savingAllocation.SavingAllocation;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.validation.OnCreate;
@@ -71,8 +70,8 @@ public class Transaction {
      * Expense associated with the transaction (can be null).
      */
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "expense_account_id", referencedColumnName = "id")
-    private ExpenseAccount expenseAccount;
+    @JoinColumn(name = "expense_id", referencedColumnName = "id")
+    private Expense expense;
 
     /**
      * Amount of the transaction.
@@ -89,6 +88,13 @@ public class Transaction {
     private BigDecimal previousBalance;
 
     /**
+     * Is the Transaction description
+     */
+    @Column(name = "description", nullable = false)
+    @NotNull(groups = {OnCreate.class}, message = "La transacción necesita una descripción")
+    private String description;
+
+    /**
      * Date and time when the transaction was created.
      */
     @Column(name = "created_at", nullable = false)
@@ -97,7 +103,7 @@ public class Transaction {
     /**
      * Date and time when the transaction was last updated.
      */
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "updated_at")
     private Date updatedAt;
 
     /**
@@ -111,6 +117,26 @@ public class Transaction {
      */
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted;
+
+    public Transaction() {
+    }
+
+    public Transaction(Long id, User owner, Account account, TransactionTypeEnum type, SavingAllocation savingAllocation, IncomeAllocation incomeAllocation, Expense expense, BigDecimal amount, BigDecimal previousBalance, String description, Date createdAt, Date updatedAt, Date deletedAt, Boolean isDeleted) {
+        this.id = id;
+        this.owner = owner;
+        this.account = account;
+        this.type = type;
+        this.savingAllocation = savingAllocation;
+        this.incomeAllocation = incomeAllocation;
+        this.expense = expense;
+        this.amount = amount;
+        this.previousBalance = previousBalance;
+        this.description = description;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.deletedAt = deletedAt;
+        this.isDeleted = isDeleted;
+    }
 
     public @NegativeOrZero(groups = OnUpdate.class,
             message = "El ID es requerido para actualizar la transacción") Long getId() {
@@ -164,12 +190,12 @@ public class Transaction {
         this.incomeAllocation = incomeAllocation;
     }
 
-    public ExpenseAccount getExpenseAccount() {
-        return expenseAccount;
+    public Expense getExpense() {
+        return expense;
     }
 
-    public void setExpenseAccount(ExpenseAccount expenseAccount) {
-        this.expenseAccount = expenseAccount;
+    public void setExpense(Expense expense) {
+        this.expense = expense;
     }
 
     public @NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "El monto es requerido") BigDecimal getAmount() {
@@ -186,6 +212,14 @@ public class Transaction {
 
     public void setPreviousBalance(@NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "El saldo anterior es requerido") BigDecimal previousBalance) {
         this.previousBalance = previousBalance;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public Date getCreatedAt() {
@@ -218,5 +252,40 @@ public class Transaction {
 
     public void setDeleted(Boolean deleted) {
         isDeleted = deleted;
+    }
+
+    /**
+     * Reverse the transaction type
+     * @param type the transaction type reversed
+     */
+    public void rollbackTransactionType(TransactionTypeEnum type) {
+        if (type.equals(TransactionTypeEnum.EXPENSE) || type.equals(TransactionTypeEnum.SAVING)) {
+            this.setType(TransactionTypeEnum.INCOME);
+        } else {
+            this.setType(TransactionTypeEnum.EXPENSE);
+        }
+    }
+
+    /**
+     * Clones the current object
+     * @return
+     */
+    public Transaction clone() {
+        return new Transaction(
+                null,
+                null,
+                this.getAccount(),
+                null,
+                this.getSavingAllocation(),
+                this.getIncomeAllocation(),
+                this.getExpense(),
+                null,
+                this.getPreviousBalance(),
+                null,
+                new Date(),
+                null,
+                null,
+                false
+        );
     }
 }

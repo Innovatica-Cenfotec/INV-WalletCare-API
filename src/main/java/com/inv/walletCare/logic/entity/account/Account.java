@@ -28,8 +28,8 @@ public class Account {
     @Column(name = "name", nullable = false, length = 100)
     @Size(groups = {OnCreate.class, OnUpdate.class }, min = 4, max = 100,
             message = "El nombre debe tener entre 4 y 100 caracteres")
-    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "^[a-zA-Z0-9 ]+$",
-            message = "El nombre solo puede contener letras, números y espacios")
+    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
+            message = "El nombre solo puede contener letras, números")
     private String name;
 
     /**
@@ -107,11 +107,15 @@ public class Account {
         this.id = id;
     }
 
-    public @Size(min = 4, max = 100, message = "El nombre debe tener entre 4 y 100 caracteres") @Pattern(regexp = "^[a-zA-Z0-9 ]+$", message = "El nombre solo puede contener letras, números y espacios") String getName() {
+    public @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 100,
+            message = "El nombre debe tener entre 4 y 100 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
+            message = "El nombre solo puede contener letras, números") String getName() {
         return name;
     }
 
-    public void setName(@Size(min = 4, max = 100, message = "El nombre debe tener entre 4 y 100 caracteres") @Pattern(regexp = "^[a-zA-Z0-9 ]+$", message = "El nombre solo puede contener letras, números y espacios") String name) {
+    public void setName(@Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 100,
+            message = "El nombre debe tener entre 4 y 100 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
+            message = "El nombre solo puede contener letras, números") String name) {
         this.name = name;
     }
 

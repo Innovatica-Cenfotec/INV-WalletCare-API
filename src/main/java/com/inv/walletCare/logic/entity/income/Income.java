@@ -1,18 +1,21 @@
 package com.inv.walletCare.logic.entity.income;
 
-
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.inv.walletCare.logic.entity.AmountTypeEnum;
+import com.inv.walletCare.logic.entity.FrequencyTypeEnum;
+import com.inv.walletCare.logic.entity.IncomeExpenceType;
+import com.inv.walletCare.logic.entity.account.Account;
+import com.inv.walletCare.logic.entity.incomeAllocation.IncomeAllocation;
 import com.inv.walletCare.logic.entity.tax.Tax;
-import com.inv.walletCare.logic.entity.tax.TaxPurposeTypeEnum;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.validation.OnCreate;
 import com.inv.walletCare.logic.validation.OnUpdate;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NegativeOrZero;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Represents an income.
@@ -36,11 +39,31 @@ public class Income {
     private User owner;
 
     /**
+     * Name of the income
+     */
+    @Column(name = "name", length = 100, nullable = false)
+    @NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido")
+    @Size(groups = {OnCreate.class, OnUpdate.class }, min = 4, max = 100,
+            message = "El nombre solo puede tener entre 4 y 100 caracteres")
+    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
+            message = "El nombre solo puede contener letras y espacios")
+    private String name;
+
+    /**
+     * Description of the income.
+     */
+    @Column(name = "description", length = 255)
+    @Size(groups = {OnCreate.class, OnUpdate.class }, max = 255,
+            message = "La descripción debe tener menos de 255 caracteres")
+    private String description;
+
+    /**
      * Indicates whether the income is a template.
      */
     @Column(name = "is_template", nullable = false)
     @NotNull(groups = OnCreate.class, message = "Debe indicar si el ingreso es una plantilla")
-    private Boolean isTemplate;
+    @JsonProperty(access = JsonProperty.Access.AUTO)
+    private boolean isTemplate;
 
     /**
      * Type of income: "unique" or "recurring".
@@ -48,29 +71,25 @@ public class Income {
     @Column(name = "type", length = 50)
     @Enumerated(EnumType.STRING)
     @NotNull(groups = OnCreate.class, message = "El tipo de ingreso es requerido")
-    private IncomeTypeEnum type;
-
-    /**
-     * Indicates whether the income is net or gross.
-     */
-    @Column(name = "is_net", nullable = false)
-    @NotNull(groups = {OnCreate.class, OnUpdate.class }, message = "Debe indicar si el ingreso es neto o bruto")
-    private Boolean isNet;
+    private IncomeExpenceType type;
 
     /**
      * Amount of the income.
      */
     @Column(name = "amount", nullable = false)
-    @NotNull(groups = {OnCreate.class, OnUpdate.class }, message = "El monto del ingreso es requerido")
-    @Size(groups = {OnCreate.class, OnUpdate.class }, min = 0, message = "El monto del ingreso debe ser mayor a 0")
+    @Min(groups = {OnCreate.class, OnUpdate.class }, value = 0, message = "El monto del ingreso debe ser mayor a 0")
     private BigDecimal amount;
+
+    @Column(name = "amount_type", length = 50)
+    @Enumerated(EnumType.STRING)
+    @NotNull(groups = {OnCreate.class, OnUpdate.class }, message = "El tipo de monto es requerido")
+    private AmountTypeEnum amountType;
 
     /**
      * Frequency of the recurring income: "monthly", "annual", "biweekly", "other" (applies only to recurring incomes).
      */
     @Column(name = "frequency", length = 50)
     @Enumerated(EnumType.STRING)
-    @NotNull(groups = OnCreate.class, message = "La frecuencia del ingreso es requerida")
     private FrequencyTypeEnum frequency;
 
     /**
@@ -85,14 +104,7 @@ public class Income {
     @Column(name = "is_tax_related", nullable = false)
     @NotNull(groups = {OnCreate.class, OnUpdate.class },
             message = "Debe indicar si el ingreso es relevante para la declaración de impuestos")
-    private Boolean isTaxRelated;
-
-    /**
-     * Type of income for tax purposes: "Gross" or "Net"
-     */
-    @Column(name = "tax_type", length = 50)
-    @Enumerated(EnumType.STRING)
-    private TaxPurposeTypeEnum taxType;
+    private boolean isTaxRelated;
 
     /**
      * Tax associated with the income.
@@ -123,112 +135,27 @@ public class Income {
      * Flag to indicate if the income is deleted.
      */
     @Column(name = "is_deleted", nullable = false)
-    private Boolean isDeleted;
+    private boolean isDeleted;
 
-    public Boolean getDeleted() {
-        return isDeleted;
+    /**
+     * Flag to indicate whether to add to a transaction
+     */
+    @Transient
+    private boolean addTransaction;
+
+    /**
+     * Account to which the income belongs.
+     */
+    @Transient
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private Account account;
+
+    public @NegativeOrZero(groups = OnUpdate.class, message = "El ID es requerido para actualizar un ingreso") Long getId() {
+        return id;
     }
 
-    public void setDeleted(Boolean deleted) {
-        isDeleted = deleted;
-    }
-
-    public Date getDeletedAt() {
-        return deletedAt;
-    }
-
-    public void setDeletedAt(Date deletedAt) {
-        this.deletedAt = deletedAt;
-    }
-
-    public Date getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Date updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public Date getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Date createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Tax getTax() {
-        return tax;
-    }
-
-    public void setTax(Tax tax) {
-        this.tax = tax;
-    }
-
-    public TaxPurposeTypeEnum getTaxType() {
-        return taxType;
-    }
-
-    public void setTaxType(TaxPurposeTypeEnum taxType) {
-        this.taxType = taxType;
-    }
-
-    public @NotNull(groups = {OnCreate.class, OnUpdate.class},
-            message = "Debe indicar si el ingreso es relevante para la declaración de impuestos") Boolean getTaxRelated() {
-        return isTaxRelated;
-    }
-
-    public void setTaxRelated(@NotNull(groups = {OnCreate.class, OnUpdate.class},
-            message = "Debe indicar si el ingreso es relevante para la declaración de impuestos") Boolean taxRelated) {
-        isTaxRelated = taxRelated;
-    }
-
-    public short getScheduledDay() {
-        return scheduledDay;
-    }
-
-    public void setScheduledDay(short scheduledDay) {
-        this.scheduledDay = scheduledDay;
-    }
-
-    public @NotNull(groups = OnCreate.class, message = "La frecuencia del ingreso es requerida") FrequencyTypeEnum getFrequency() {
-        return frequency;
-    }
-
-    public void setFrequency(@NotNull(groups = OnCreate.class, message = "La frecuencia del ingreso es requerida") FrequencyTypeEnum frequency) {
-        this.frequency = frequency;
-    }
-
-    public @NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "El monto del ingreso es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 0, message = "El monto del ingreso debe ser mayor a 0") BigDecimal getAmount() {
-        return amount;
-    }
-
-    public void setAmount(@NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "El monto del ingreso es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 0, message = "El monto del ingreso debe ser mayor a 0") BigDecimal amount) {
-        this.amount = amount;
-    }
-
-    public @NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "Debe indicar si el ingreso es neto o bruto") Boolean getNet() {
-        return isNet;
-    }
-
-    public void setNet(@NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "Debe indicar si el ingreso es neto o bruto") Boolean net) {
-        isNet = net;
-    }
-
-    public @NotNull(groups = OnCreate.class, message = "El tipo de ingreso es requerido") IncomeTypeEnum getType() {
-        return type;
-    }
-
-    public void setType(@NotNull(groups = OnCreate.class, message = "El tipo de ingreso es requerido") IncomeTypeEnum type) {
-        this.type = type;
-    }
-
-    public @NotNull(groups = OnCreate.class, message = "Debe indicar si el ingreso es una plantilla") Boolean getTemplate() {
-        return isTemplate;
-    }
-
-    public void setTemplate(@NotNull(groups = OnCreate.class, message = "Debe indicar si el ingreso es una plantilla") Boolean template) {
-        isTemplate = template;
+    public void setId(@NegativeOrZero(groups = OnUpdate.class, message = "El ID es requerido para actualizar un ingreso") Long id) {
+        this.id = id;
     }
 
     public User getOwner() {
@@ -239,11 +166,141 @@ public class Income {
         this.owner = owner;
     }
 
-    public @NegativeOrZero(groups = OnUpdate.class, message = "El ID es requerido para actualizar un ingreso") Long getId() {
-        return id;
+    public @NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 100,
+            message = "El nombre solo puede tener entre 4 y 100 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
+            message = "El nombre solo puede contener letras y espacios") String getName() {
+        return name;
     }
 
-    public void setId(@NegativeOrZero(groups = OnUpdate.class, message = "El ID es requerido para actualizar un ingreso") Long id) {
-        this.id = id;
+    public void setName(@NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 100,
+            message = "El nombre solo puede tener entre 4 y 100 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
+            message = "El nombre solo puede contener letras y espacios") String name) {
+        this.name = name;
+    }
+
+    public @Size(groups = {OnCreate.class, OnUpdate.class}, max = 255,
+            message = "La descripción debe tener menos de 255 caracteres") String getDescription() {
+        return description;
+    }
+
+    public void setDescription(@Size(groups = {OnCreate.class, OnUpdate.class}, max = 255,
+            message = "La descripción debe tener menos de 255 caracteres") String description) {
+        this.description = description;
+    }
+
+    @NotNull(groups = OnCreate.class, message = "Debe indicar si el ingreso es una plantilla")
+    public boolean isTemplate() {
+        return isTemplate;
+    }
+
+    public void setTemplate(@NotNull(groups = OnCreate.class, message = "Debe indicar si el ingreso es una plantilla") boolean template) {
+        isTemplate = template;
+    }
+
+    public @NotNull(groups = OnCreate.class, message = "El tipo de ingreso es requerido") IncomeExpenceType getType() {
+        return type;
+    }
+
+    public void setType(@NotNull(groups = OnCreate.class, message = "El tipo de ingreso es requerido") IncomeExpenceType type) {
+        this.type = type;
+    }
+
+    public @Min(groups = {OnCreate.class, OnUpdate.class}, value = 0, message = "El monto del ingreso debe ser mayor a 0") BigDecimal getAmount() {
+        return amount;
+    }
+
+    public void setAmount(@Min(groups = {OnCreate.class, OnUpdate.class}, value = 0, message = "El monto del ingreso debe ser mayor a 0") BigDecimal amount) {
+        this.amount = amount;
+    }
+
+    public @NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "El tipo de monto es requerido") AmountTypeEnum getAmountType() {
+        return amountType;
+    }
+
+    public void setAmountType(@NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "El tipo de monto es requerido") AmountTypeEnum amountType) {
+        this.amountType = amountType;
+    }
+
+    public FrequencyTypeEnum getFrequency() {
+        return frequency;
+    }
+
+    public void setFrequency(FrequencyTypeEnum frequency) {
+        this.frequency = frequency;
+    }
+
+    public short getScheduledDay() {
+        return scheduledDay;
+    }
+
+    public void setScheduledDay(short scheduledDay) {
+        this.scheduledDay = scheduledDay;
+    }
+
+    @NotNull(groups = {OnCreate.class, OnUpdate.class},
+            message = "Debe indicar si el ingreso es relevante para la declaración de impuestos")
+    public boolean isTaxRelated() {
+        return isTaxRelated;
+    }
+
+    public void setTaxRelated(@NotNull(groups = {OnCreate.class, OnUpdate.class},
+            message = "Debe indicar si el ingreso es relevante para la declaración de impuestos") boolean taxRelated) {
+        isTaxRelated = taxRelated;
+    }
+
+    public Tax getTax() {
+        return tax;
+    }
+
+    public void setTax(Tax tax) {
+        this.tax = tax;
+    }
+
+    public Date getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Date createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Date getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Date updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public Date getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(Date deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        isDeleted = deleted;
+    }
+
+    public boolean isAddTransaction() {
+        return addTransaction;
+    }
+
+    public void setAddTransaction(boolean addTransaction) {
+        this.addTransaction = addTransaction;
+    }
+
+    public Account getAccount() {
+        return account;
+    }
+
+    public void setAccount(Account account) {
+        this.account = account;
     }
 }
