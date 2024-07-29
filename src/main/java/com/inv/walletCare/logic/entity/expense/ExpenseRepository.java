@@ -12,7 +12,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
     @Query("SELECT i FROM Expense i WHERE i.id = ?1 AND i.owner.id = ?2 AND i.isDeleted = false")
     Optional<Expense> findByIdAndUserId(Long incomeId, Long userId);
-
+  
     @Query("SELECT i FROM Expense i WHERE i.name = ?1 AND i.owner.id = ?2 AND i.isDeleted = false")
     Optional<Expense> findByNameAndOwnerId(String name, Long ownerId);
 
@@ -21,4 +21,13 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
     @Query("SELECT i FROM Expense i WHERE  i.account.id =?1 AND i.isDeleted = false")
     Optional<List<Optional<Expense>>> findAllByAccountId( Long accountId);
+  
+    @Query("SELECT i FROM Expense i WHERE i.account.id = ?1 AND i.owner.id = ?2 AND i.isDeleted = false")
+    List<Expense> findByAccountAndUserId(Long accountId, Long userId);
+
+    @Query("SELECT i FROM Expense i WHERE i.account.id = ?1 AND i.isDeleted = false")
+    List<Expense> findByAccount(Long accountId);
+
+    @Query("SELECT i FROM Expense i WHERE i.name = ?1 AND i.owner.id = ?2 AND i.isDeleted = false")
+    Optional<Expense> findByNameAndOwnerId(String name, Long ownerId);
 }

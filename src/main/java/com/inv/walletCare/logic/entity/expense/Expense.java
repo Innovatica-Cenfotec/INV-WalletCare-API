@@ -64,7 +64,8 @@ public class Expense {
      */
     @Column(name = "description", length = 255)
     @Size(groups = {OnCreate.class, OnUpdate.class }, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres")
+            message = "La descripción debe tener menos de 255 caracteres"), regexp = "^[a-zA-Z0-9 ]+$",
+            message = "La descripción solo puede contener letras, números y espacios")
     private String description;
 
     /**
@@ -157,6 +158,9 @@ public class Expense {
     @Transient
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private boolean addTransaction;
+  
+    public Expense() {
+    }
 
     public @NegativeOrZero(groups = OnUpdate.class, message = "El ID es requerido para actualizar un gasto") Long getId() {
         return id;
@@ -195,12 +199,14 @@ public class Expense {
     }
 
     public @Size(groups = {OnCreate.class, OnUpdate.class}, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres") String getDescription() {
+            message = "La descripción debe tener menos de 255 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z0-9 ]+$",
+            message = "La descripción solo puede contener letras, números y espacios") String getDescription() {
         return description;
     }
 
     public void setDescription(@Size(groups = {OnCreate.class, OnUpdate.class}, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres") String description) {
+            message = "La descripción debe tener menos de 255 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z0-9 ]+$",
+            message = "La descripción solo puede contener letras, números y espacios") String description) {
         this.description = description;
     }
 

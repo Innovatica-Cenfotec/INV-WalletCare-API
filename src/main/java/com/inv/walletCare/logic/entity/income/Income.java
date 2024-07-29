@@ -54,7 +54,9 @@ public class Income {
      */
     @Column(name = "description", length = 255)
     @Size(groups = {OnCreate.class, OnUpdate.class }, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres")
+            message = "La descripción debe tener menos de 255 caracteres"), 
+            regexp = "^[a-zA-Z0-9 ]+$",
+            message = "La descripción solo puede contener letras, números y espacios")
     private String description;
 
     /**
@@ -131,6 +133,7 @@ public class Income {
     @Column(name = "deleted_at")
     private Date deletedAt;
 
+    
     /**
      * Flag to indicate if the income is deleted.
      */
@@ -149,6 +152,12 @@ public class Income {
     @Transient
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Account account;
+  
+      /**
+     * List of income allocations.
+     */
+    @OneToMany(mappedBy = "income", fetch = FetchType.EAGER)
+    private List<IncomeAllocation> incomeAllocations;
 
     public @NegativeOrZero(groups = OnUpdate.class, message = "El ID es requerido para actualizar un ingreso") Long getId() {
         return id;
@@ -179,12 +188,14 @@ public class Income {
     }
 
     public @Size(groups = {OnCreate.class, OnUpdate.class}, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres") String getDescription() {
+            message = "La descripción debe tener menos de 255 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z0-9 ]+$",
+            message = "La descripción solo puede contener letras, números y espacios") String getDescription() {
         return description;
     }
 
     public void setDescription(@Size(groups = {OnCreate.class, OnUpdate.class}, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres") String description) {
+            message = "La descripción debe tener menos de 255 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z0-9 ]+$",
+            message = "La descripción solo puede contener letras, números y espacios") String description) {
         this.description = description;
     }
 
@@ -279,7 +290,6 @@ public class Income {
     public void setDeletedAt(Date deletedAt) {
         this.deletedAt = deletedAt;
     }
-
     public boolean isDeleted() {
         return isDeleted;
     }
@@ -302,5 +312,12 @@ public class Income {
 
     public void setAccount(Account account) {
         this.account = account;
+    }
+    public List<IncomeAllocation> getIncomeAllocations() {
+        return incomeAllocations;
+    }
+
+    public void setIncomeAllocations(List<IncomeAllocation> incomeAllocations) {
+        this.incomeAllocations = incomeAllocations;
     }
 }

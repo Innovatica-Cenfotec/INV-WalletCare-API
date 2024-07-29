@@ -46,7 +46,7 @@ public class TransactionRestController {
     public List<Transaction> getAllTrasactionsbyAccount(@PathVariable Long id){
         return transactionRepository.findAllByAccountId(id).get();
     }
-
+  
     @GetMapping("/owner")
     public List<Transaction> getAllTransactionsByOwner(){
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -59,7 +59,6 @@ public class TransactionRestController {
 
         return toolsService.balancesCalculations(accountRepository.findById(id).get());
     }
-
     /**
      * Make a rollback for a transaction
      * @param id is the transaction id
