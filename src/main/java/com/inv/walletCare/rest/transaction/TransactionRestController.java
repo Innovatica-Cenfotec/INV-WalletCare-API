@@ -54,10 +54,17 @@ public class TransactionRestController {
         return transactionRepository.findAllbyOwner(currentUser.getId()).get();
     }
 
-    @GetMapping("/balances/{id}")
-    public BalanceDTO getBalancesCalc(@PathVariable Long id){
+    @GetMapping("/balances-account/{id}")
+    public BalanceDTO getBalancesCalcByAccount(@PathVariable Long id){
 
-        return toolsService.balancesCalculations(accountRepository.findById(id).get());
+        return toolsService.balancesCalculationsbyAccount(accountRepository.findById(id).get());
+    }
+
+    @GetMapping("/balances-user")
+    public BalanceDTO getBalancesCalcByUser(){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+        return toolsService.balancesCalculationsbyUser(currentUser);
     }
 
     /**

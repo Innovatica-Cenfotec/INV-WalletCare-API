@@ -150,7 +150,7 @@ public class AccountRestController {
 
         Optional<Account> account = accountRepository.findByIdAndOwnerId(id, currentUser.getId());
         if (account.isEmpty()) {
-            throw new IllegalArgumentException("La cuenta no se encontró o no pertenece al usuario actual.");
+            throw new IllegalArgumentException("No eres el propietario de esta cuenta, no puedes eliminarla.");
         }
 
         if (account.get().isDefault()) {
@@ -182,12 +182,12 @@ public class AccountRestController {
 
         Optional<Account> existingAccount = accountRepository.findByIdAndOwnerId(id, currentUser.getId());
         if (existingAccount.isEmpty()) {
-            throw new IllegalArgumentException("La cuenta no se encontró o no pertenece al usuario actual.");
+            throw new IllegalArgumentException("No eres el propietario de esta cuenta, no puedes editarla.");
         }
 
         // Validate that the account name is unique for the user
         var existingAccountName = accountRepository.findByNameAndOwnerId(account.getName(), currentUser.getId());
-        if (existingAccountName.isPresent()) {
+        if (existingAccountName.isPresent() && existingAccountName.get().getId() != id) {
             throw new FieldValidationException("name", "El nombre de la cuenta que has elegido ya está en uso. Por favor, ingresa uno diferente");
         }
 
@@ -308,6 +308,16 @@ public class AccountRestController {
             if (sharedAccount.get().getInvitationStatus() == 3) {
                 throw new Exception("El usuario ha rechazado la invitación a esta cuenta");
             }
+
+            if (sharedAccount.get().getInvitationStatus() == 4){
+                var newInvitation = sharedAccount.map(modifiedAccountUser ->{
+                    modifiedAccountUser.setInvitationStatus(1);
+                    modifiedAccountUser.setActive(false);
+                    modifiedAccountUser.setLeftAt(null);
+                    return accountUserRepository.save(modifiedAccountUser);
+                });
+                newAccountUser = newInvitation.get();
+            }
         }
 
         Email emailDetails = new Email();
@@ -389,6 +399,14 @@ public class AccountRestController {
         }
 
         switch (sharedAccount.get().getInvitationStatus()) {
+            case 1:
+                sharedAccount.map(existingAccount -> {
+                    existingAccount.setInvitationStatus(4);
+                    existingAccount.setLeftAt(new Date());
+                    existingAccount.setActive(false);
+                    return accountUserRepository.save(existingAccount);
+                });
+                break;
             case 2:
                 sharedAccount.map(existingAccount -> {
                     existingAccount.setInvitationStatus(4);
