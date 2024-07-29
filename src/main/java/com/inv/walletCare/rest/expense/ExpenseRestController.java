@@ -17,7 +17,6 @@ import com.inv.walletCare.logic.entity.transaction.TransactionTypeEnum;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.exceptions.FieldValidationException;
 import com.inv.walletCare.logic.validation.OnCreate;
-import com.inv.walletCare.logic.validation.OnUpdate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
