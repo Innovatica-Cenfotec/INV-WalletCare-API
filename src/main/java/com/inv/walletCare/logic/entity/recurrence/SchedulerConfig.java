@@ -1,8 +1,6 @@
-package com.inv.walletCare.logic;
+package com.inv.walletCare.logic.entity.recurrence;
 
 import com.inv.walletCare.logic.entity.FrequencyTypeEnum;
-import com.inv.walletCare.logic.entity.expense.ExpenseService;
-import com.inv.walletCare.logic.entity.income.IncomeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -16,10 +14,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 public class SchedulerConfig {
 
     @Autowired
-    private IncomeService incomeService;
+    private IncomeRecurrenceService incomeService;
 
     @Autowired
-    private ExpenseService expenseService;
+    private ExpenseRecurrenceService expenseService;
 
     /**
      * Runs a task daily at midnight.

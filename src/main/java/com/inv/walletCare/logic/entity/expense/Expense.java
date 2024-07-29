@@ -1,5 +1,6 @@
 package com.inv.walletCare.logic.entity.expense;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.inv.walletCare.logic.entity.AmountTypeEnum;
 import com.inv.walletCare.logic.entity.FrequencyTypeEnum;
 import com.inv.walletCare.logic.entity.IncomeExpenceType;
@@ -50,11 +51,11 @@ public class Expense {
     /**
      * Name of the tax
      */
-    @Column(name = "name", length = 50, nullable = false)
+    @Column(name = "name", length = 100, nullable = false)
     @NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido")
-    @Size(groups = {OnCreate.class, OnUpdate.class }, min = 4, max = 50,
-            message = "El nombre solo puede tener entre 4 y 50 caracteres")
-    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "^[a-zA-Z ]+$",
+    @Size(groups = {OnCreate.class, OnUpdate.class }, min = 4, max = 100,
+            message = "El nombre solo puede tener entre 4 y 100 caracteres")
+    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
             message = "El nombre solo puede contener letras y espacios")
     private String name;
 
@@ -64,8 +65,6 @@ public class Expense {
     @Column(name = "description", length = 255)
     @Size(groups = {OnCreate.class, OnUpdate.class }, max = 255,
             message = "La descripción debe tener menos de 255 caracteres")
-    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "^[a-zA-Z0-9 ]+$",
-            message = "La descripción solo puede contener letras, números y espacios")
     private String description;
 
     /**
@@ -88,6 +87,7 @@ public class Expense {
      */
     @Column(name = "is_template", nullable = false)
     @NotNull(groups = OnCreate.class, message = "Debe indicar si el gasto es una plantilla")
+    @JsonProperty(access = JsonProperty.Access.AUTO)
     private boolean isTemplate;
 
     /**
@@ -151,6 +151,13 @@ public class Expense {
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted;
 
+    /**
+     * Flag to indicate whether to add to a transaction
+     */
+    @Transient
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private boolean addTransaction;
+
     public @NegativeOrZero(groups = OnUpdate.class, message = "El ID es requerido para actualizar un gasto") Long getId() {
         return id;
     }
@@ -175,27 +182,25 @@ public class Expense {
         this.expenseCategory = expenseCategory;
     }
 
-    public @NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 50,
-            message = "El nombre solo puede tener entre 4 y 50 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z ]+$",
+    public @NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 100,
+            message = "El nombre solo puede tener entre 4 y 100 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
             message = "El nombre solo puede contener letras y espacios") String getName() {
         return name;
     }
 
-    public void setName(@NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 50,
-            message = "El nombre solo puede tener entre 4 y 50 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z ]+$",
+    public void setName(@NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 100,
+            message = "El nombre solo puede tener entre 4 y 100 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
             message = "El nombre solo puede contener letras y espacios") String name) {
         this.name = name;
     }
 
     public @Size(groups = {OnCreate.class, OnUpdate.class}, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z0-9 ]+$",
-            message = "La descripción solo puede contener letras, números y espacios") String getDescription() {
+            message = "La descripción debe tener menos de 255 caracteres") String getDescription() {
         return description;
     }
 
     public void setDescription(@Size(groups = {OnCreate.class, OnUpdate.class}, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z0-9 ]+$",
-            message = "La descripción solo puede contener letras, números y espacios") String description) {
+            message = "La descripción debe tener menos de 255 caracteres") String description) {
         this.description = description;
     }
 
@@ -307,5 +312,13 @@ public class Expense {
 
     public boolean isDeleted() {
         return isDeleted;
+    }
+
+    public boolean isAddTransaction() {
+        return addTransaction;
+    }
+
+    public void setAddTransaction(boolean addTransaction) {
+        this.addTransaction = addTransaction;
     }
 }
