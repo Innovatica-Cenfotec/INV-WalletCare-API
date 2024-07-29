@@ -2,6 +2,8 @@ package com.inv.walletCare.rest.account;
 
 import com.inv.walletCare.logic.entity.Response;
 import com.inv.walletCare.logic.entity.account.*;
+import com.inv.walletCare.logic.entity.accountUser.AccountUser;
+import com.inv.walletCare.logic.entity.accountUser.AccountUserRespository;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.exceptions.FieldValidationException;
 import com.inv.walletCare.logic.validation.OnCreate;
