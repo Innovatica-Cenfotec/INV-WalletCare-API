@@ -16,4 +16,5 @@ public interface IncomeRepository extends JpaRepository<Income, Long> {
 
     @Query("SELECT i FROM Income i WHERE i.name = ?1 AND i.owner.id = ?2 AND i.isDeleted = false")
     Optional<Income> findByNameAndOwnerId(String name, Long ownerId);
+
 }
