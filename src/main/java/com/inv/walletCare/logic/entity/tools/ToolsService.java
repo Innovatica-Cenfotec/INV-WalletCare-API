@@ -1,9 +1,9 @@
 package com.inv.walletCare.logic.entity.tools;
 
-import com.inv.walletCare.logic.entity.IncomeExpenceType;
 import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
 import com.inv.walletCare.logic.entity.helpers.Helper;
+import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
 import com.inv.walletCare.logic.entity.transaction.TransactionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,9 +20,12 @@ public class ToolsService {
     @Autowired
     private ExpenseRepository expenseRepository;
 
+    @Autowired
+    private RecurrenceRepository recurrenceRepository;
+
     public BalanceDTO balancesCalculations(Account account) {
         var transactions = transactionRepository.findAllByAccountId(account.getId());
-        var reccurrentExpenses = expenseRepository.findAllByAccountId(account.getId());
+        var reccurrentTransactions = recurrenceRepository.findAllByAccountId(account.getId());
         double monthlyExpense = 0;
         double monthlyIncome = 0;
         double recurrentExpense = 0;
@@ -47,9 +50,11 @@ public class ToolsService {
             }
         }
 
-        for (var exp : reccurrentExpenses.get()) {
-            if (exp.get().getType().equals(IncomeExpenceType.RECURRENCE)) {
-                recurrentExpense = recurrentExpense + exp.get().getAmount().doubleValue();
+        for (var exp : reccurrentTransactions.get()) {
+            if (exp.get().getExpense() != null) {
+                recurrentExpense = recurrentExpense + exp.get().getExpense().getAmount().doubleValue();
+            }else if (exp.get().getIncome() != null){
+                recurrentIncome = recurrentIncome + exp.get().getIncome().getAmount().doubleValue();
             }
         }
 
