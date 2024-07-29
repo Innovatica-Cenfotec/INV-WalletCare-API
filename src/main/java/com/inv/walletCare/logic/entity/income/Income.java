@@ -1,8 +1,10 @@
 package com.inv.walletCare.logic.entity.income;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.inv.walletCare.logic.entity.AmountTypeEnum;
 import com.inv.walletCare.logic.entity.FrequencyTypeEnum;
 import com.inv.walletCare.logic.entity.IncomeExpenceType;
+import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.incomeAllocation.IncomeAllocation;
 import com.inv.walletCare.logic.entity.tax.Tax;
 import com.inv.walletCare.logic.entity.user.User;
@@ -39,11 +41,11 @@ public class Income {
     /**
      * Name of the income
      */
-    @Column(name = "name", length = 50, nullable = false)
+    @Column(name = "name", length = 100, nullable = false)
     @NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido")
-    @Size(groups = {OnCreate.class, OnUpdate.class }, min = 4, max = 50,
-            message = "El nombre solo puede tener entre 4 y 50 caracteres")
-    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "^[a-zA-Z ]+$",
+    @Size(groups = {OnCreate.class, OnUpdate.class }, min = 4, max = 100,
+            message = "El nombre solo puede tener entre 4 y 100 caracteres")
+    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
             message = "El nombre solo puede contener letras y espacios")
     private String name;
 
@@ -52,8 +54,8 @@ public class Income {
      */
     @Column(name = "description", length = 255)
     @Size(groups = {OnCreate.class, OnUpdate.class }, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres")
-    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "^[a-zA-Z0-9 ]+$",
+            message = "La descripción debe tener menos de 255 caracteres"), 
+            regexp = "^[a-zA-Z0-9 ]+$",
             message = "La descripción solo puede contener letras, números y espacios")
     private String description;
 
@@ -62,6 +64,7 @@ public class Income {
      */
     @Column(name = "is_template", nullable = false)
     @NotNull(groups = OnCreate.class, message = "Debe indicar si el ingreso es una plantilla")
+    @JsonProperty(access = JsonProperty.Access.AUTO)
     private boolean isTemplate;
 
     /**
@@ -130,17 +133,31 @@ public class Income {
     @Column(name = "deleted_at")
     private Date deletedAt;
 
-    /**
-     * List of income allocations.
-     */
-    @OneToMany(mappedBy = "income", fetch = FetchType.EAGER)
-    private List<IncomeAllocation> incomeAllocations;
-
+    
     /**
      * Flag to indicate if the income is deleted.
      */
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted;
+
+    /**
+     * Flag to indicate whether to add to a transaction
+     */
+    @Transient
+    private boolean addTransaction;
+
+    /**
+     * Account to which the income belongs.
+     */
+    @Transient
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private Account account;
+  
+      /**
+     * List of income allocations.
+     */
+    @OneToMany(mappedBy = "income", fetch = FetchType.EAGER)
+    private List<IncomeAllocation> incomeAllocations;
 
     public @NegativeOrZero(groups = OnUpdate.class, message = "El ID es requerido para actualizar un ingreso") Long getId() {
         return id;
@@ -158,14 +175,14 @@ public class Income {
         this.owner = owner;
     }
 
-    public @NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 50,
-            message = "El nombre solo puede tener entre 4 y 50 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z ]+$",
+    public @NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 100,
+            message = "El nombre solo puede tener entre 4 y 100 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
             message = "El nombre solo puede contener letras y espacios") String getName() {
         return name;
     }
 
-    public void setName(@NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 50,
-            message = "El nombre solo puede tener entre 4 y 50 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z ]+$",
+    public void setName(@NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 100,
+            message = "El nombre solo puede tener entre 4 y 100 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
             message = "El nombre solo puede contener letras y espacios") String name) {
         this.name = name;
     }
@@ -273,20 +290,34 @@ public class Income {
     public void setDeletedAt(Date deletedAt) {
         this.deletedAt = deletedAt;
     }
-
-    public List<IncomeAllocation> getIncomeAllocations() {
-        return incomeAllocations;
-    }
-
-    public void setIncomeAllocations(List<IncomeAllocation> incomeAllocations) {
-        this.incomeAllocations = incomeAllocations;
-    }
-
     public boolean isDeleted() {
         return isDeleted;
     }
 
     public void setDeleted(boolean deleted) {
         isDeleted = deleted;
+    }
+
+    public boolean isAddTransaction() {
+        return addTransaction;
+    }
+
+    public void setAddTransaction(boolean addTransaction) {
+        this.addTransaction = addTransaction;
+    }
+
+    public Account getAccount() {
+        return account;
+    }
+
+    public void setAccount(Account account) {
+        this.account = account;
+    }
+    public List<IncomeAllocation> getIncomeAllocations() {
+        return incomeAllocations;
+    }
+
+    public void setIncomeAllocations(List<IncomeAllocation> incomeAllocations) {
+        this.incomeAllocations = incomeAllocations;
     }
 }

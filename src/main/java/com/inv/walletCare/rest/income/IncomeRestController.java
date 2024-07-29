@@ -1,10 +1,19 @@
 package com.inv.walletCare.rest.income;
 
 import com.inv.walletCare.logic.entity.FrequencyTypeEnum;
+
+import com.inv.walletCare.logic.entity.IncomeExpenceType;
+
 import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.account.AccountRepository;
 import com.inv.walletCare.logic.entity.income.Income;
 import com.inv.walletCare.logic.entity.income.IncomeRepository;
+
+import com.inv.walletCare.logic.entity.incomeAllocation.IncomeAllocation;
+import com.inv.walletCare.logic.entity.incomeAllocation.IncomeAllocationRepository;
+import com.inv.walletCare.logic.entity.recurrence.Recurrence;
+import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
+
 import com.inv.walletCare.logic.entity.tax.Tax;
 import com.inv.walletCare.logic.entity.tax.TaxRepository;
 import com.inv.walletCare.logic.entity.transaction.Transaction;
@@ -13,6 +22,9 @@ import com.inv.walletCare.logic.entity.transaction.TransactionTypeEnum;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.exceptions.FieldValidationException;
 import com.inv.walletCare.logic.validation.OnCreate;
+
+import com.inv.walletCare.logic.validation.OnUpdate;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -39,6 +51,12 @@ public class IncomeRestController {
 
     @Autowired
     private TransactionService transactionService;
+
+    @Autowired
+    private IncomeAllocationRepository incomeAllocationRepository;
+
+    @Autowired
+    private RecurrenceRepository recurrenceRepository;
 
     @GetMapping
     public List<Income> getIncomes() {
@@ -77,6 +95,7 @@ public class IncomeRestController {
             });
         }
 
+
         if (income.isTaxRelated()) {
             // Validate that the tax IDs are valid
             Optional<Tax> tax = taxRepository.findById(income.getTax().getId());
@@ -112,12 +131,68 @@ public class IncomeRestController {
         newIncome.setAmountType(income.getAmountType());
         newIncome.setFrequency(income.getFrequency());
         newIncome.setScheduledDay(income.getScheduledDay());
+
+        newIncome.setTaxRelated(income.isTaxRelated());
+
         newIncome.setTaxRelated(income.isTemplate());
+
         newIncome.setTax(income.getTax());
         newIncome.setCreatedAt(new Date());
         newIncome.setUpdatedAt(new Date());
         newIncome.setDeleted(false);
         newIncome.setType(income.getType());
+
+        var incomeCreated = incomeRepository.save(newIncome);
+
+        if (income.isAddTransaction()){
+            Optional<Account> account = accountRepository.findById(income.getAccount().getId());
+            if (account.isEmpty()) {
+                throw new IllegalArgumentException("Cuenta no encontrada o no pertenece al usuario actual.");
+            }
+
+            if (incomeCreated.getType().equals(IncomeExpenceType.UNIQUE)) {
+                // Associate the income with the account
+                IncomeAllocation incomeAllocation = new IncomeAllocation();
+                incomeAllocation.setAccount(account.get());
+                incomeAllocation.setIncome(newIncome);
+                incomeAllocation.setOwner(currentUser);
+                incomeAllocation.setPercentage(new BigDecimal(100));
+                incomeAllocation.setCreatedAt(new Date());
+                incomeAllocation.setUpdatedAt(new Date());
+                incomeAllocation.setDeleted(false);
+                var incomeAllocationCreated = incomeAllocationRepository.save(incomeAllocation);
+
+                // Create a transaction for the income
+                var tran = new Transaction();
+                tran.setAmount(newIncome.getAmount());
+                tran.setAccount(account.get());
+                tran.setCreatedAt(new Date());
+                tran.setDeletedAt(null);
+                tran.setDescription("Ingreso: " + newIncome.getName());
+                tran.setDeleted(false);
+                tran.setPreviousBalance(new BigDecimal(0));
+                tran.setType(TransactionTypeEnum.INCOME);
+                tran.setUpdatedAt(null);
+                tran.setIncomeAllocation(incomeAllocationCreated);
+                tran.setOwner(currentUser);
+                tran.setSavingAllocation(null);
+                transactionService.saveTransaction(tran);
+            }
+            else
+            {
+                // Add income to the recurrence
+                Recurrence recurrence = new Recurrence();
+                recurrence.setOwner(currentUser);
+                recurrence.setAccount(account.get());
+                recurrence.setExpense(null);
+                recurrence.setIncome(incomeCreated);
+                recurrence.setCreatedAt(new Date());
+                recurrence.setDeleted(false);
+                recurrenceRepository.save(recurrence);
+            }
+        }
+
+
         newIncome.setIncomeAllocations(income.getIncomeAllocations());
 
         var account = accountRepository.findById(Long.valueOf(1)).get();
@@ -137,6 +212,7 @@ public class IncomeRestController {
         tran.setOwner(currentUser);
         tran.setSavingAllocation(null);
         transactionService.saveTransaction(tran);
+
         return incomeRepository.save(newIncome);
     }
 
@@ -157,4 +233,62 @@ public class IncomeRestController {
 
         return income.get();
     }
+
+
+    @PostMapping("/add-to-account")
+    public void addIncomeToAccount(@RequestBody Income income) throws Exception {
+        Optional<Account> account = accountRepository.findById(income.getAccount().getId());
+        if (account.isEmpty()) {
+            throw new IllegalArgumentException("Cuenta no encontrada o no pertenece al usuario actual.");
+        }
+
+        Optional<Income> existingIncome = incomeRepository.findById(income.getId());
+        if (existingIncome.isEmpty()) {
+            throw new IllegalArgumentException("Ingreso no encontrado o no pertenece al usuario actual.");
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+
+        if (existingIncome.get().getType().equals(IncomeExpenceType.UNIQUE)) {
+            // Associate the income with the account
+            IncomeAllocation incomeAllocation = new IncomeAllocation();
+            incomeAllocation.setAccount(account.get());
+            incomeAllocation.setIncome(existingIncome.get());
+            incomeAllocation.setOwner(currentUser);
+            incomeAllocation.setPercentage(new BigDecimal(100));
+            incomeAllocation.setCreatedAt(new Date());
+            incomeAllocation.setUpdatedAt(new Date());
+            incomeAllocation.setDeleted(false);
+            var incomeAllocationCreated = incomeAllocationRepository.save(incomeAllocation);
+
+            // Create a transaction for the income
+            var tran = new Transaction();
+            tran.setAmount(existingIncome.get().getAmount());
+            tran.setAccount(account.get());
+            tran.setCreatedAt(new Date());
+            tran.setDeletedAt(null);
+            tran.setDescription("Ingreso: " + existingIncome.get().getName());
+            tran.setDeleted(false);
+            tran.setPreviousBalance(new BigDecimal(0));
+            tran.setType(TransactionTypeEnum.INCOME);
+            tran.setUpdatedAt(null);
+            tran.setIncomeAllocation(incomeAllocationCreated);
+            tran.setOwner(currentUser);
+            tran.setSavingAllocation(null);
+            transactionService.saveTransaction(tran);
+        }
+        else {
+            // Add income to the recurrence
+            Recurrence recurrence = new Recurrence();
+            recurrence.setOwner(currentUser);
+            recurrence.setAccount(account.get());
+            recurrence.setExpense(null);
+            recurrence.setIncome(existingIncome.get());
+            recurrence.setCreatedAt(new Date());
+            recurrence.setDeleted(false);
+            recurrenceRepository.save(recurrence);
+        }
+    }
 }
+
