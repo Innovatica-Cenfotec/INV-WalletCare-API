@@ -7,6 +7,8 @@ import com.inv.walletCare.logic.entity.account.AccountRepository;
 import com.inv.walletCare.logic.entity.expense.Expense;
 import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
 import com.inv.walletCare.logic.entity.helpers.Helper;
+import com.inv.walletCare.logic.entity.recurrence.Recurrence;
+import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
 import com.inv.walletCare.logic.entity.tax.Tax;
 import com.inv.walletCare.logic.entity.tax.TaxRepository;
 import com.inv.walletCare.logic.entity.transaction.Transaction;
@@ -15,6 +17,7 @@ import com.inv.walletCare.logic.entity.transaction.TransactionTypeEnum;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.exceptions.FieldValidationException;
 import com.inv.walletCare.logic.validation.OnCreate;
+import com.inv.walletCare.logic.validation.OnUpdate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -41,6 +44,9 @@ public class ExpenseRestController {
 
     @Autowired
     private TransactionService transactionService;
+
+    @Autowired
+    private RecurrenceRepository recurrenceRepository;
 
     @GetMapping
     public List<Expense> getExpenses() {
@@ -93,18 +99,14 @@ public class ExpenseRestController {
             if (expense.getFrequency() == FrequencyTypeEnum.OTHER && expense.getScheduledDay() <= 1 || expense.getScheduledDay() >= 31) {
                 throw new FieldValidationException("scheduleDay", "El día programado es requerido para los ingresos relacionados con impuestos.");
             }
-
-            Optional<Account> account = accountRepository.findById(expense.getAccount().getId());
-            if (account.isEmpty()) {
-                throw new FieldValidationException("account", "La cuenta con el ID " + expense.getAccount().getId() + " no existe en el sistema.");
-            }
         }
+
         Expense newExpense = new Expense();
+        newExpense.setAccount(expense.getAccount());
         newExpense.setName(expense.getName());
         newExpense.setAmount(expense.getAmount());
         newExpense.setAmountType(expense.getAmountType());
         newExpense.setOwner(user);
-        newExpense.setAccount(expense.getAccount());
         newExpense.setDescription(expense.getDescription());
         newExpense.setTemplate(expense.isTemplate());
         newExpense.setFrequency(expense.getFrequency());
@@ -117,25 +119,84 @@ public class ExpenseRestController {
         newExpense.setType(expense.getType());
         var expenseCreated = expenseRepository.save(newExpense);
 
-        if(!expenseCreated.isTemplate() && expenseCreated.getType().equals(IncomeExpenceType.UNIQUE)){
+        if (expense.isAddTransaction()) {
+            Optional<Account> account = accountRepository.findById(expense.getAccount().getId());
+            if (account.isEmpty()) {
+                throw new IllegalArgumentException("Cuenta no encontrada o no pertenece al usuario actual.");
+            }
+
+            if (expenseCreated.getType().equals(IncomeExpenceType.UNIQUE)) {
+                var tran = new Transaction();
+                tran.setAmount(Helper.reverse(expenseCreated.getAmount()));
+                tran.setCreatedAt(new Date());
+                tran.setDeletedAt(null);
+                tran.setDescription("Gasto: " + expenseCreated.getName());
+                tran.setDeleted(false);
+                tran.setPreviousBalance(new BigDecimal(0));
+                tran.setType(TransactionTypeEnum.EXPENSE);
+                tran.setUpdatedAt(null);
+                tran.setAccount(expense.getAccount());
+                tran.setExpense(expenseCreated);
+                tran.setIncomeAllocation(null);
+                tran.setOwner(user);
+                tran.setSavingAllocation(null);
+                transactionService.saveTransaction(tran);
+
+            } else {
+                // Add expense to the recurrence
+                Recurrence recurrence = new Recurrence();
+                recurrence.setOwner(user);
+                recurrence.setAccount(expense.getAccount());
+                recurrence.setExpense(expenseCreated);
+                recurrence.setCreatedAt(new Date());
+                recurrence.setDeleted(false);
+                recurrenceRepository.save(recurrence);
+            }
+        }
+
+        return expenseCreated;
+    }
+
+    @PostMapping("/add-to-account")
+    public void addExpenseToAccount(@RequestBody Expense expense) throws Exception {
+        Optional<Account> account = accountRepository.findById(expense.getAccount().getId());
+        if (account.isEmpty()) {
+            throw new IllegalArgumentException("Cuenta no encontrada o no pertenece al usuario actual.");
+        }
+
+        Optional<Expense> expenseCreated = expenseRepository.findById(expense.getId());
+        if (expenseCreated.isEmpty()) {
+            throw new IllegalArgumentException("Gasto no encontrado o no pertenece al usuario actual.");
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+
+        if (expenseCreated.get().getType().equals(IncomeExpenceType.UNIQUE)) {
             var tran = new Transaction();
-            tran.setAmount(Helper.reverse(expenseCreated.getAmount()));
+            tran.setAmount(Helper.reverse(expenseCreated.get().getAmount()));
             tran.setCreatedAt(new Date());
             tran.setDeletedAt(null);
-            tran.setDescription("Gasto: " + expenseCreated.getName());
+            tran.setDescription("Gasto: " + expenseCreated.get().getName());
             tran.setDeleted(false);
             tran.setPreviousBalance(new BigDecimal(0));
             tran.setType(TransactionTypeEnum.EXPENSE);
             tran.setUpdatedAt(null);
             tran.setAccount(expense.getAccount());
-            tran.setExpense(expenseCreated);
+            tran.setExpense(expenseCreated.get());
             tran.setIncomeAllocation(null);
             tran.setOwner(user);
             tran.setSavingAllocation(null);
             transactionService.saveTransaction(tran);
+        } else {
+            // Add expense to the recurrence
+            Recurrence recurrence = new Recurrence();
+            recurrence.setOwner(user);
+            recurrence.setAccount(expense.getAccount());
+            recurrence.setExpense(expenseCreated.get());
+            recurrence.setCreatedAt(new Date());
+            recurrence.setDeleted(false);
+            recurrenceRepository.save(recurrence);
         }
-
-
-        return expenseCreated;
     }
 }
