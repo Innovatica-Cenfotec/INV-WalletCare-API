@@ -93,9 +93,7 @@ public class ExpenseRestController {
         if (existingExpense.isPresent()) {
             throw new FieldValidationException("name", "El nombre del gasto que ha ingresado ya está en uso. Por favor, ingrese uno diferente.");
         }
-
-        expense.setAccount(accountRepository.findById(Long.valueOf(3)).get());
-
+        
         if (expense.isTaxRelated()) {
             Optional<Tax> tax = taxRepository.findById(expense.getTax().getId());
             if (tax.isEmpty()) {
@@ -149,7 +147,6 @@ public class ExpenseRestController {
             tran.setType(TransactionTypeEnum.EXPENSE);
             tran.setUpdatedAt(null);
             tran.setAccount(expense.getAccount());
-            tran.setExpense(expenseCreated);
             tran.setIncomeAllocation(null);
             tran.setOwner(user);
             tran.setSavingAllocation(null);
@@ -234,7 +231,7 @@ public class ExpenseRestController {
      * @throws RuntimeException if the expense is not found or not owned by the current user.
      */
     @DeleteMapping("/{id}")
-    public void deleteAccount(@PathVariable Long id) {
+    public void deleteExpense(@PathVariable Long id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
 
