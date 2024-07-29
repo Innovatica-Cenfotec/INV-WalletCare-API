@@ -25,6 +25,9 @@ public class ToolsService {
     @Autowired
     private RecurrenceRepository recurrenceRepository;
 
+    @Autowired
+    private AccountRepository accountRepository;
+
     public BalanceDTO balancesCalculations(Account account) {
         var transactions = transactionRepository.findAllByAccountId(account.getId());
         var reccurrentTransactions = recurrenceRepository.findAllByAccountId(account.getId());
@@ -55,15 +58,15 @@ public class ToolsService {
         for (var exp : reccurrentTransactions.get()) {
             if (exp.get().getExpense() != null) {
                 recurrentExpense = recurrentExpense + exp.get().getExpense().getAmount().doubleValue();
-            }else if (exp.get().getIncome() != null){
+            } else if (exp.get().getIncome() != null) {
                 recurrentIncome = recurrentIncome + exp.get().getIncome().getAmount().doubleValue();
             }
         }
 
 
         return new BalanceDTO(new BigDecimal(monthlyExpense), Helper.reverse(new BigDecimal(recurrentExpense)), new BigDecimal(monthlyIncome), new BigDecimal(recurrentIncome));
+    }
 
-    private AccountRepository accountRepository;
     public BigDecimal newBalanceAccount(Transaction transaction){
         var balance = accountRepository.findById(transaction.getAccount().getId()).get().getBalance();
         balance = balance.add(transaction.getAmount());

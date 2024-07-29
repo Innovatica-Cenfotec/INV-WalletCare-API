@@ -4,20 +4,16 @@ import com.inv.walletCare.logic.entity.FrequencyTypeEnum;
 import com.inv.walletCare.logic.entity.IncomeExpenceType;
 import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.account.AccountRepository;
+import com.inv.walletCare.logic.entity.accountUser.AccountUserRespository;
+import com.inv.walletCare.logic.entity.email.EmailSenderService;
 import com.inv.walletCare.logic.entity.expense.Expense;
 import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
 import com.inv.walletCare.logic.entity.helpers.Helper;
 import com.inv.walletCare.logic.entity.recurrence.Recurrence;
 import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
-import com.inv.walletCare.logic.entity.account.Account;
-import com.inv.walletCare.logic.entity.account.AccountRepository;
 import com.inv.walletCare.logic.entity.account.AccountTypeEnum;
 import com.inv.walletCare.logic.entity.accountUser.AccountUser;
-import com.inv.walletCare.logic.entity.accountUser.AccountUserRespository;
 import com.inv.walletCare.logic.entity.email.Email;
-import com.inv.walletCare.logic.entity.email.EmailSenderService;
-import com.inv.walletCare.logic.entity.expense.Expense;
-import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
 import com.inv.walletCare.logic.entity.tax.Tax;
 import com.inv.walletCare.logic.entity.tax.TaxRepository;
 import com.inv.walletCare.logic.entity.transaction.Transaction;
@@ -28,7 +24,6 @@ import com.inv.walletCare.logic.exceptions.FieldValidationException;
 import com.inv.walletCare.logic.validation.OnCreate;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.inv.walletCare.logic.validation.OnUpdate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.MailException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -61,16 +56,11 @@ public class ExpenseRestController {
     @Autowired
     private RecurrenceRepository recurrenceRepository;
 
-    private AccountUserRespository accountUserRepository;
-
     @Autowired
     private EmailSenderService emailSenderService;
 
     @Autowired
-    private TaxRepository taxRepository;
-
-    @Autowired
-    private TransactionService transactionService;
+    private AccountUserRespository accountUserRespository;
 
     @GetMapping
     public List<Expense> getExpenses() {
@@ -97,13 +87,10 @@ public class ExpenseRestController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) authentication.getPrincipal();
 
-        if (expense.get().getOwner().getId() != user.getId()) {
-
         if (!user.getId().equals(expense.get().getOwner().getId())) {
 
             throw new IllegalArgumentException("Gasto no encontrado o no pertenece al usuario actual");
         }
-
         return expense.get();
     }
 
@@ -123,9 +110,6 @@ public class ExpenseRestController {
                 throw new FieldValidationException("tax", "El impuesto es requerido para los gastos relacionados con impuestos.");
             }
 
-
-            if (tax.get().getOwner().getId() != user.getId()) {
-
             if (!user.getId().equals(tax.get().getOwner().getId())) {
 
                 throw new FieldValidationException("tax", "El impuesto con el ID " + expense.getTax().getId() + " no existe o no pertenece al usuario actual.");
@@ -138,29 +122,19 @@ public class ExpenseRestController {
             if (expense.getFrequency() == FrequencyTypeEnum.OTHER && expense.getScheduledDay() <= 1 || expense.getScheduledDay() >= 31) {
                 throw new FieldValidationException("scheduleDay", "El día programado es requerido para los ingresos relacionados con impuestos.");
             }
+        }
 
+        Optional<Account> account = accountRepository.findById(expense.getAccount().getId());
+        if (account.isEmpty()) {
+            throw new FieldValidationException("account", "La cuenta con el ID " + expense.getAccount().getId() + " no existe en el sistema.");
         }
 
         Expense newExpense = new Expense();
         newExpense.setAccount(expense.getAccount());
-
-
-            Optional<Account> account = accountRepository.findById(expense.getAccount().getId());
-            if (account.isEmpty()) {
-                throw new FieldValidationException("account", "La cuenta con el ID " + expense.getAccount().getId() + " no existe en el sistema.");
-            }
-        }
-
-        Expense newExpense = new Expense();
-
         newExpense.setName(expense.getName());
         newExpense.setAmount(expense.getAmount());
         newExpense.setAmountType(expense.getAmountType());
         newExpense.setOwner(user);
-
-      
-        newExpense.setAccount(expense.getAccount());
-
         newExpense.setDescription(expense.getDescription());
         newExpense.setTemplate(expense.isTemplate());
         newExpense.setFrequency(expense.getFrequency());
@@ -173,9 +147,8 @@ public class ExpenseRestController {
         newExpense.setType(expense.getType());
         var expenseCreated = expenseRepository.save(newExpense);
 
-
         if (expense.isAddTransaction()) {
-            Optional<Account> account = accountRepository.findById(expense.getAccount().getId());
+            account = accountRepository.findById(expense.getAccount().getId());
             if (account.isEmpty()) {
                 throw new IllegalArgumentException("Cuenta no encontrada o no pertenece al usuario actual.");
             }
@@ -233,14 +206,6 @@ public class ExpenseRestController {
             tran.setCreatedAt(new Date());
             tran.setDeletedAt(null);
             tran.setDescription("Gasto: " + expenseCreated.get().getName());
-
-        if(!expenseCreated.isTemplate()){
-            var tran = new Transaction();
-            tran.setAmount(expenseCreated.getAmount());
-            tran.setCreatedAt(new Date());
-            tran.setDeletedAt(null);
-            tran.setDescription("Gasto: " + expenseCreated.getName());
-
             tran.setDeleted(false);
             tran.setPreviousBalance(new BigDecimal(0));
             tran.setType(TransactionTypeEnum.EXPENSE);
@@ -265,13 +230,6 @@ public class ExpenseRestController {
             recurrenceRepository.save(recurrence);
         }
     }
-}
-
-        }
-
-
-        return expenseCreated;
-    }
 
     /**
      * Updates an existing expense with new details.
@@ -295,7 +253,7 @@ public class ExpenseRestController {
 
         // Checks if the account is shared and notifies all members.
         if (account.getType() == AccountTypeEnum.SHARED) {
-            Optional<List<AccountUser>> accountUsers = accountUserRepository.findAllByAccountID(account.getId());
+            Optional<List<AccountUser>> accountUsers = accountUserRespository.findAllByAccountID(account.getId());
 
             if (accountUsers.isPresent()) {
                 // Send email parallelly to all members

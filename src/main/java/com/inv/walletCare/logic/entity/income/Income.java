@@ -54,8 +54,8 @@ public class Income {
      */
     @Column(name = "description", length = 255)
     @Size(groups = {OnCreate.class, OnUpdate.class }, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres"), 
-            regexp = "^[a-zA-Z0-9 ]+$",
+            message = "La descripción debe tener menos de 255 caracteres")
+    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "^[a-zA-Z0-9 ]+$",
             message = "La descripción solo puede contener letras, números y espacios")
     private String description;
 
