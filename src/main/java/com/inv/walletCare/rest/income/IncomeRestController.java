@@ -183,6 +183,31 @@ public class IncomeRestController {
         return income.get();
     }
 
+    @PutMapping ("/{id}")
+    public Income updateIncome(@Validated(OnUpdate.class)@PathVariable Long id,@RequestBody Income income){
+        Authentication authentication=SecurityContextHolder.getContext().getAuthentication();
+        User currentUser=(User) authentication.getPrincipal();
+        Optional<Income>existingIncome=incomeRepository.findByIdAndUserId(id,currentUser.getId());
+        if (existingIncome.isEmpty()){
+            throw new IllegalArgumentException("El ingreso no se encontró o no pertenece al usuario actual");
+        }
+        var existingIncomeName = incomeRepository.findByNameAndOwnerId(income.getName(), currentUser.getId());
+        if (existingIncomeName.isPresent()&&existingIncome.get().getId()!=existingIncomeName.get().getId()){
+            throw new FieldValidationException("name","El nombre de la cuenta que ha ingresado ya existe,porfavor utilice otro");
+        }
+        //if (existingIncome.get().getType() == IncomeExpenceType.RECURRENCE){}
+        existingIncome.get().setUpdatedAt(new Date());
+        existingIncome.get().setName(income.getName());
+        existingIncome.get().setDescription(income.getDescription());
+        existingIncome.get().setAmount(income.getAmount());
+        existingIncome.get().setAmountType(income.getAmountType());
+        existingIncome.get().setTax(income.getTax());
+        existingIncome.get().setFrequency(income.getFrequency());
+        return  incomeRepository.save(existingIncome.get());
+
+    }
+
+
     @PostMapping("/add-to-account")
     public void addIncomeToAccount(@RequestBody Income income) throws Exception {
         Optional<Account> account = accountRepository.findById(income.getAccount().getId());
