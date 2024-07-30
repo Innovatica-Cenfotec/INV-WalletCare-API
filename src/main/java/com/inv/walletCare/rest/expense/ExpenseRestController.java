@@ -65,55 +65,10 @@ public class ExpenseRestController {
     }
 
     /**
-     *
-     * @return details
-     */
-    @GetMapping
-    public List<Expense> getExpenses() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) authentication.getPrincipal();
-        return expenseRepository.findAllByUserId(user.getId());
-    }
-
-    /**
-     *
-     * @param account details
-     * @return details
-     */
-    @GetMapping("/filter")
-    public List<Expense> getExpensesByAccount(@RequestParam long account) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        authentication.getPrincipal();
-        return expenseRepository.findByAccount(account);
-    }
-
-    /**
-     *
-     * @param id details
-     * @return details
-     */
-    @GetMapping("/{id}")
-    public Expense getExpenseById(@PathVariable long id) {
-        Optional<Expense> expense = expenseRepository.findById(id);
-        if (expense.isEmpty()) {
-            throw new IllegalArgumentException("Gasto no encontrado o no pertenece al usuario actual");
-        }
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) authentication.getPrincipal();
-
-        if (!user.getId().equals(expense.get().getOwner().getId())) {
-
-            throw new IllegalArgumentException("Gasto no encontrado o no pertenece al usuario actual");
-        }
-        return expense.get();
-    }
-
-    /**
-     *
-     * @param expense details
-     * @return details
-     * @throws Exception details
+     * Create an expense for the currently authenticated user.
+     * @param expense The expense body.
+     * @return The expense created.
+     * @throws Exception if the expense cannot be created.
      */
     @PostMapping
     public Expense createExpense(@Validated(OnCreate.class) @RequestBody Expense expense) throws Exception {
@@ -207,8 +162,72 @@ public class ExpenseRestController {
     }
 
     /**
+     * Get an expense by its id.
+     * @param id Long value with the expense id to search.
+     * @return An expense found by id.
+     */
+    @GetMapping("/{id}")
+    public Expense getExpenseById(@PathVariable long id) {
+        Optional<Expense> expense = expenseRepository.findById(id);
+        if (expense.isEmpty()) {
+            throw new IllegalArgumentException("Gasto no encontrado o no pertenece al usuario actual");
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+
+        if (!user.getId().equals(expense.get().getOwner().getId())) {
+
+            throw new IllegalArgumentException("Gasto no encontrado o no pertenece al usuario actual");
+        }
+        return expense.get();
+    }
+
+    /**
+     * Get all expenses created by logged user.
+     * @return List of expenses created by logged user.
+     */
+    @GetMapping
+    public List<Expense> getExpenses() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+        return expenseRepository.findAllByUserId(user.getId());
+    }
+
+    /**
+     * Get all expenses by account.
+     * @param account Long value with the account id to search.
+     * @return List of expenses from a same account.
+     */
+    @GetMapping("/filter")
+    public List<Expense> getExpensesByAccount(@RequestParam long account) {
+        return expenseRepository.findByAccount(account);
+    }
+
+    /**
+     * Get all expenses with isTemplate = true created by logged user.
+     * @return List of expenses templates created by logged user.
+     */
+    @GetMapping("/templates")
+    public List<Expense> getExpenseTemplatesByUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+
+        List<Expense> allExpenses = expenseRepository.findAllByUserId(user.getId());
+        List<Expense> expenseTemplates = new ArrayList<>();
+
+        for (Expense expense : allExpenses) {
+            if (expense.isTemplate()) {
+                expenseTemplates.add(expense);
+            }
+        }
+
+        return expenseTemplates;
+    }
+
+    /**
      * Add existing expense to user account.
-     * @param expense Expense to add.
+     * @param expense Expense body to add.
      * @throws Exception details
      */
     @PostMapping("/add-to-account")
@@ -260,7 +279,7 @@ public class ExpenseRestController {
     /**
      * Updates an existing expense with new details.
      * @param id      The ID of the expense to update.
-     * @param expense An expense object containing the new values for name and description.
+     * @param expense An expense object containing the new values.
      * @return The updated expense object.
      * @throws RuntimeException if the expense with the specified ID is not found or not owned by the current user.
      */
