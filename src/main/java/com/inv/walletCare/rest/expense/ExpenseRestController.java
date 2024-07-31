@@ -100,11 +100,6 @@ public class ExpenseRestController {
             }
         }
 
-        Optional<Account> account = accountRepository.findById(expense.getAccount().getId());
-        if (account.isEmpty()) {
-            throw new FieldValidationException("account", "La cuenta con el ID " + expense.getAccount().getId() + " no existe en el sistema.");
-        }
-
         Expense newExpense = new Expense();
         newExpense.setAccount(expense.getAccount());
         newExpense.setName(expense.getName());
@@ -124,7 +119,7 @@ public class ExpenseRestController {
         var expenseCreated = expenseRepository.save(newExpense);
 
         if (expense.isAddTransaction()) {
-            account = accountRepository.findById(expense.getAccount().getId());
+            Optional<Account> account = accountRepository.findById(expense.getAccount().getId());
             if (account.isEmpty()) {
                 throw new IllegalArgumentException("Cuenta no encontrada o no pertenece al usuario actual.");
             }
