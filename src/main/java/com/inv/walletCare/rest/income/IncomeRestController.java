@@ -65,8 +65,8 @@ public class IncomeRestController {
         User currentUser = (User) authentication.getPrincipal();
 
         // Validate that the income name is unique for the user
-        Optional<Income> existingIncome = incomeRepository.findByNameAndOwnerId(income.getName(), currentUser.getId());
-        if (existingIncome.isPresent()) {
+        Optional<Income> existingIncome = incomeRepository.findByNameAndOwnerIdAAndTemplate(income.getName(), currentUser.getId());
+        if (existingIncome.isPresent() && income.isTemplate()) {
             throw new FieldValidationException("name",
                     "El nombre del ingreso que ha ingresado ya está en uso. Por favor, ingresa uno diferente.");
         }
@@ -112,6 +112,7 @@ public class IncomeRestController {
         newIncome.setUpdatedAt(new Date());
         newIncome.setDeleted(false);
         newIncome.setType(income.getType());
+        newIncome.setDescription(income.getDescription());
         var incomeCreated = incomeRepository.save(newIncome);
 
         if (income.isAddTransaction()){
@@ -183,17 +184,17 @@ public class IncomeRestController {
         return income.get();
     }
 
-    @PutMapping ("/{id}")
-    public Income updateIncome(@Validated(OnUpdate.class)@PathVariable Long id,@RequestBody Income income){
-        Authentication authentication=SecurityContextHolder.getContext().getAuthentication();
-        User currentUser=(User) authentication.getPrincipal();
-        Optional<Income>existingIncome=incomeRepository.findByIdAndUserId(id,currentUser.getId());
-        if (existingIncome.isEmpty()){
+    @PutMapping("/{id}")
+    public Income updateIncome(@Validated(OnUpdate.class) @PathVariable Long id, @RequestBody Income income) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+        Optional<Income> existingIncome = incomeRepository.findByIdAndUserId(id, currentUser.getId());
+        if (existingIncome.isEmpty()) {
             throw new IllegalArgumentException("El ingreso no se encontró o no pertenece al usuario actual");
         }
-        var existingIncomeName = incomeRepository.findByNameAndOwnerId(income.getName(), currentUser.getId());
-        if (existingIncomeName.isPresent()&&existingIncome.get().getId()!=existingIncomeName.get().getId()){
-            throw new FieldValidationException("name","El nombre de la cuenta que ha ingresado ya existe,porfavor utilice otro");
+        var existingIncomeName = incomeRepository.findByNameAndOwnerIdAAndTemplate(income.getName(), currentUser.getId());
+        if (existingIncomeName.isPresent() && existingIncome.get().getId() != existingIncomeName.get().getId()) {
+            throw new FieldValidationException("name", "El nombre del ingreso que ha ingresado ya está en uso. Por favor, ingresa uno diferente.");
         }
         //if (existingIncome.get().getType() == IncomeExpenceType.RECURRENCE){}
         existingIncome.get().setUpdatedAt(new Date());
