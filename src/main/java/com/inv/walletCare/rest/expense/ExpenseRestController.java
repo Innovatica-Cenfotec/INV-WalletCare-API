@@ -99,8 +99,8 @@ public class ExpenseRestController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) authentication.getPrincipal();
 
-        Optional<Expense> existingExpense = expenseRepository.findByNameAndOwnerId(expense.getName(), user.getId());
-        if (existingExpense.isPresent()) {
+        Optional<Expense> existingExpense = expenseRepository.findByNameAndOwnerIdAndTemplate(expense.getName(), user.getId());
+        if (existingExpense.isPresent() && expense.isTemplate()) {
             throw new FieldValidationException("name", "El nombre del gasto que ha ingresado ya está en uso. Por favor, ingrese uno diferente.");
         }
 
@@ -244,9 +244,14 @@ public class ExpenseRestController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
 
-        Optional<Expense> existingExpense = expenseRepository.findById(id);
+        Optional<Expense> existingExpense = expenseRepository.findByIdAndUserId(id, currentUser.getId());
         if (existingExpense.isEmpty()) {
             throw new IllegalArgumentException("El gasto no se encontró o no pertenece al usuario actual.");
+        }
+
+        Optional<Expense> existingIncomeName = expenseRepository.findByNameAndOwnerIdAndTemplate(expense.getName(), currentUser.getId());
+        if (existingIncomeName.isPresent() && existingExpense.get().getId() != existingIncomeName.get().getId()) {
+            throw new IllegalArgumentException("El nombre del gasto que ha ingresado ya está en uso. Por favor, ingrese uno diferente.");
         }
 
         Account account = accountRepository.findById(expense.getAccount().getId()).get();
