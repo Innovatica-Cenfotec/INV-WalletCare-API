@@ -101,6 +101,7 @@ public class IncomeRestController {
         Income newIncome = new Income();
         newIncome.setName(income.getName());
         newIncome.setAmount(income.getAmount());
+        newIncome.setDescription(income.getDescription());
         newIncome.setOwner(currentUser);
         newIncome.setTemplate(income.isTemplate());
         newIncome.setAmountType(income.getAmountType());
@@ -205,6 +206,18 @@ public class IncomeRestController {
         existingIncome.get().setFrequency(income.getFrequency());
         return  incomeRepository.save(existingIncome.get());
 
+    }
+    @DeleteMapping("/{id}")
+    public void deleteIncome(@PathVariable Long id){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+        Optional<Income> existingIncome = incomeRepository.findByIdAndUserId(id, currentUser.getId());
+        if (existingIncome.get().getOwner().getId()!=currentUser.getId()) {
+            throw new IllegalArgumentException("No eres el propietario de esta cuenta, no puedes eliminarla.");
+        }
+        existingIncome.get().setDeletedAt(new Date());
+        existingIncome.get().setDeleted(true);
+        existingIncome.get().setUpdatedAt(new Date());
     }
 
 
