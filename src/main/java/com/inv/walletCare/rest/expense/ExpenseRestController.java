@@ -22,7 +22,6 @@ import com.inv.walletCare.logic.entity.transaction.TransactionTypeEnum;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.exceptions.FieldValidationException;
 import com.inv.walletCare.logic.validation.OnCreate;
-import org.springframework.beans.factory.annotation.Autowired;
 import com.inv.walletCare.logic.validation.OnUpdate;
 import org.springframework.mail.MailException;
 import org.springframework.security.core.Authentication;
@@ -41,59 +40,36 @@ import java.util.concurrent.CompletableFuture;
 @RequestMapping("/expenses")
 public class ExpenseRestController {
 
-    @Autowired
-    private ExpenseRepository expenseRepository;
+    private final ExpenseRepository expenseRepository;
+    private final AccountRepository accountRepository;
+    private final TaxRepository taxRepository;
+    private final TransactionService transactionService;
+    private final RecurrenceRepository recurrenceRepository;
+    private final EmailSenderService emailSenderService;
+    private final AccountUserRespository accountUserRespository;
 
-    @Autowired
-    private AccountRepository accountRepository;
-
-    @Autowired
-    private TaxRepository taxRepository;
-
-    @Autowired
-    private TransactionService transactionService;
-
-    @Autowired
-    private RecurrenceRepository recurrenceRepository;
-
-    @Autowired
-    private EmailSenderService emailSenderService;
-
-    @Autowired
-    private AccountUserRespository accountUserRespository;
-
-    @GetMapping
-    public List<Expense> getExpenses() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) authentication.getPrincipal();
-        return expenseRepository.findAllByUserId(user.getId());
+    public ExpenseRestController(ExpenseRepository expenseRepository,
+                                 AccountRepository accountRepository,
+                                 TaxRepository taxRepository,
+                                 TransactionService transactionService,
+                                 RecurrenceRepository recurrenceRepository,
+                                 EmailSenderService emailSenderService,
+                                 AccountUserRespository accountUserRespository) {
+        this.expenseRepository = expenseRepository;
+        this.accountRepository = accountRepository;
+        this.taxRepository = taxRepository;
+        this.transactionService = transactionService;
+        this.recurrenceRepository = recurrenceRepository;
+        this.emailSenderService = emailSenderService;
+        this.accountUserRespository = accountUserRespository;
     }
 
-    @GetMapping("/filter")
-    public List<Expense> getExpensesByAccount(@RequestParam long account) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) authentication.getPrincipal();
-
-        return expenseRepository.findByAccount(account);
-    }
-
-    @GetMapping("/{id}")
-    public Expense getExpenseById(@PathVariable long id) {
-        Optional<Expense> expense = expenseRepository.findById(id);
-        if (expense.isEmpty()) {
-            throw new IllegalArgumentException("Gasto no encontrado o no pertenece al usuario actual");
-        }
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User user = (User) authentication.getPrincipal();
-
-        if (!user.getId().equals(expense.get().getOwner().getId())) {
-
-            throw new IllegalArgumentException("Gasto no encontrado o no pertenece al usuario actual");
-        }
-        return expense.get();
-    }
-
+    /**
+     * Create an expense for the currently authenticated user.
+     * @param expense The expense body.
+     * @return The expense created.
+     * @throws Exception if the expense cannot be created.
+     */
     @PostMapping
     public Expense createExpense(@Validated(OnCreate.class) @RequestBody Expense expense) throws Exception {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -124,11 +100,6 @@ public class ExpenseRestController {
             }
         }
 
-        Optional<Account> account = accountRepository.findById(expense.getAccount().getId());
-        if (account.isEmpty()) {
-            throw new FieldValidationException("account", "La cuenta con el ID " + expense.getAccount().getId() + " no existe en el sistema.");
-        }
-
         Expense newExpense = new Expense();
         newExpense.setAccount(expense.getAccount());
         newExpense.setName(expense.getName());
@@ -148,7 +119,7 @@ public class ExpenseRestController {
         var expenseCreated = expenseRepository.save(newExpense);
 
         if (expense.isAddTransaction()) {
-            account = accountRepository.findById(expense.getAccount().getId());
+            Optional<Account> account = accountRepository.findById(expense.getAccount().getId());
             if (account.isEmpty()) {
                 throw new IllegalArgumentException("Cuenta no encontrada o no pertenece al usuario actual.");
             }
@@ -185,6 +156,75 @@ public class ExpenseRestController {
         return expenseCreated;
     }
 
+    /**
+     * Get an expense by its id.
+     * @param id Long value with the expense id to search.
+     * @return An expense found by id.
+     */
+    @GetMapping("/{id}")
+    public Expense getExpenseById(@PathVariable long id) {
+        Optional<Expense> expense = expenseRepository.findById(id);
+        if (expense.isEmpty()) {
+            throw new IllegalArgumentException("Gasto no encontrado o no pertenece al usuario actual");
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+
+        if (!user.getId().equals(expense.get().getOwner().getId())) {
+
+            throw new IllegalArgumentException("Gasto no encontrado o no pertenece al usuario actual");
+        }
+        return expense.get();
+    }
+
+    /**
+     * Get all expenses created by logged user.
+     * @return List of expenses created by logged user.
+     */
+    @GetMapping
+    public List<Expense> getExpenses() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+        return expenseRepository.findAllByUserId(user.getId());
+    }
+
+    /**
+     * Get all expenses by account.
+     * @param account Long value with the account id to search.
+     * @return List of expenses from a same account.
+     */
+    @GetMapping("/filter")
+    public List<Expense> getExpensesByAccount(@RequestParam long account) {
+        return expenseRepository.findByAccount(account);
+    }
+
+    /**
+     * Get all expenses with isTemplate = true created by logged user.
+     * @return List of expenses templates created by logged user.
+     */
+    @GetMapping("/templates")
+    public List<Expense> getExpenseTemplatesByUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+
+        List<Expense> allExpenses = expenseRepository.findAllByUserId(user.getId());
+        List<Expense> expenseTemplates = new ArrayList<>();
+
+        for (Expense expense : allExpenses) {
+            if (expense.isTemplate()) {
+                expenseTemplates.add(expense);
+            }
+        }
+
+        return expenseTemplates;
+    }
+
+    /**
+     * Add existing expense to user account.
+     * @param expense Expense body to add.
+     * @throws Exception details
+     */
     @PostMapping("/add-to-account")
     public void addExpenseToAccount(@RequestBody Expense expense) throws Exception {
         Optional<Account> account = accountRepository.findById(expense.getAccount().getId());
@@ -233,9 +273,8 @@ public class ExpenseRestController {
 
     /**
      * Updates an existing expense with new details.
-     *
      * @param id      The ID of the expense to update.
-     * @param expense An expense object containing the new values for name and description.
+     * @param expense An expense object containing the new values.
      * @return The updated expense object.
      * @throws RuntimeException if the expense with the specified ID is not found or not owned by the current user.
      */
@@ -246,33 +285,91 @@ public class ExpenseRestController {
 
         Optional<Expense> existingExpense = expenseRepository.findByIdAndUserId(id, currentUser.getId());
         if (existingExpense.isEmpty()) {
-            throw new IllegalArgumentException("El gasto no se encontró o no pertenece al usuario actual.");
+            throw new IllegalArgumentException("El gasto no existe o no tiene los permisos para modificarlo.");
         }
 
         Optional<Expense> existingIncomeName = expenseRepository.findByNameAndOwnerIdAndTemplate(expense.getName(), currentUser.getId());
-        if (existingIncomeName.isPresent() && existingExpense.get().getId() != existingIncomeName.get().getId()) {
-            throw new IllegalArgumentException("El nombre del gasto que ha ingresado ya está en uso. Por favor, ingrese uno diferente.");
+        if (existingIncomeName.isPresent() && !Objects.equals(existingExpense.get().getId(), existingIncomeName.get().getId())) {
+            throw new IllegalArgumentException("El nombre de la plantilla de gasto ya está en uso. Por favor, ingrese uno diferente.");
+        }
+        
+        if (existingExpense.get().getAccount() != null) {
+            sendEmailToAllMembers(existingExpense.get().getAccount().getId());
         }
 
-        Account account = accountRepository.findById(expense.getAccount().getId()).get();
+        // Expense details
+        existingExpense.get().setOwner(currentUser); // To know who updated it
+        existingExpense.get().setAccount(expense.getAccount());
+        existingExpense.get().setTemplate(expense.isTemplate());
+        existingExpense.get().setType(expense.getType());
+        existingExpense.get().setName(expense.getName());
+        existingExpense.get().setDescription(expense.getDescription());
+        existingExpense.get().setAmount(expense.getAmount());
+        existingExpense.get().setAmountType(expense.getAmountType());
+        existingExpense.get().setFrequency(expense.getFrequency());
+        existingExpense.get().setScheduledDay(expense.getScheduledDay());
+        // Category and tax details
+        existingExpense.get().setExpenseCategory(expense.getExpenseCategory());
+        existingExpense.get().setTaxRelated(expense.isTaxRelated());
+        existingExpense.get().setTax(expense.getTax());
+        // Timestamps
+        existingExpense.get().setUpdatedAt(new Date());
+        return expenseRepository.save(existingExpense.get());
+    }
+
+    /**
+     * Deletes an expense by its ID for the currently authenticated user.
+     * @param id The ID of the expense to delete.
+     * @throws RuntimeException if the expense is not found or not owned by the current user.
+     */
+    @DeleteMapping("/{id}")
+    public void deleteExpense(@PathVariable Long id) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+
+        Optional<Expense> expense = expenseRepository.findById(id);
+        if (expense.isEmpty()) {
+            throw new IllegalArgumentException("El gasto no existe o no tiene los permisos para eliminarlo.");
+        }
+
+        if (expense.get().getAccount() != null) {
+            sendEmailToAllMembers(expense.get().getAccount().getId());
+        }
+
+        expense.get().setDeleted(true);
+        expense.get().setOwner(currentUser); // To know who deleted it
+        expense.get().setUpdatedAt(new Date());
+        expense.get().setDeletedAt(new Date());
+        expenseRepository.save(expense.get());
+    }
+
+    /**
+     * Check if an account is shared, then send an email to all members with the update template.
+     * @param accountId Long value with the account id.
+     */
+    private void sendEmailToAllMembers(Long accountId) {
+        Optional<Account> account = accountRepository.findById(accountId);
+        if (account.isEmpty()) {
+            throw new IllegalArgumentException("La cuenta no existe.");
+        }
 
         // Checks if the account is shared and notifies all members.
-        if (account.getType() == AccountTypeEnum.SHARED) {
-            Optional<List<AccountUser>> accountUsers = accountUserRespository.findAllByAccountID(account.getId());
+        if (account.get().getType() == AccountTypeEnum.SHARED) {
+            Optional<List<AccountUser>> accountMembers = accountUserRespository.findAllByAccountID(account.get().getId());
 
-            if (accountUsers.isPresent()) {
+            if (accountMembers.isPresent()) {
                 // Send email parallelly to all members
                 List<CompletableFuture<Void>> futures = new ArrayList<>();
-                for (AccountUser accountUser : accountUsers.get()) {
+                for (AccountUser member : accountMembers.get()) {
                     futures.add(CompletableFuture.runAsync(() -> {
                         try {
                             Email emailDetails = new Email();
-                            emailDetails.setTo(accountUser.getUser().getEmail());
+                            emailDetails.setTo(member.getUser().getEmail());
                             emailDetails.setSubject("Actualización de Cuenta Compartida");
                             Map<String, String> params = new HashMap<>();
-                            params.put("accountOwnerName", currentUser.getEmail());
-                            params.put("memberName", accountUser.getUser().getEmail());
-                            params.put("accountName", existingExpense.get().getName());
+                            params.put("accountOwnerName", account.get().getOwner().getName());
+                            params.put("memberName", member.getUser().getName());
+                            params.put("accountName", account.get().getName());
                             emailSenderService.sendEmail(emailDetails, "UpdateSharedAccount", params);
                         } catch (MailException e) {
                             // Log and continue with the next user
@@ -286,44 +383,5 @@ public class ExpenseRestController {
                 CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
             }
         }
-
-        existingExpense.get().setUpdatedAt(new Date());
-        existingExpense.get().setOwner(currentUser);
-        existingExpense.get().setAccount(account);
-        existingExpense.get().setName(expense.getName());
-        existingExpense.get().setDescription(expense.getDescription());
-        existingExpense.get().setAmountType(expense.getAmountType());
-        existingExpense.get().setAmount(expense.getAmount());
-        existingExpense.get().setType(expense.getType());
-        existingExpense.get().setFrequency(expense.getFrequency());
-        existingExpense.get().setTemplate(expense.isTemplate());
-        existingExpense.get().setTaxRelated(expense.isTemplate());
-        existingExpense.get().setTax(expense.getTax());
-        existingExpense.get().setScheduledDay(expense.getScheduledDay());
-        return expenseRepository.save(existingExpense.get());
-    }
-
-    /**
-     * Deletes an expense by its ID for the currently authenticated user.
-     *
-     * @param id The ID of the expense to delete.
-     * @throws RuntimeException if the expense is not found or not owned by the current user.
-     */
-    @DeleteMapping("/{id}")
-    public void deleteExpense(@PathVariable Long id) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User currentUser = (User) authentication.getPrincipal();
-
-        Optional<Expense> expense = expenseRepository.findById(id);
-        if (expense.isEmpty()) {
-            throw new IllegalArgumentException("El gasto no se encontró o no pertenece al usuario actual.");
-        }
-
-        expense.get().setDeleted(true);
-        expense.get().setOwner(currentUser);
-        expense.get().setUpdatedAt(new Date());
-        expense.get().setDeletedAt(new Date());
-        expenseRepository.save(expense.get());
     }
 }
-
