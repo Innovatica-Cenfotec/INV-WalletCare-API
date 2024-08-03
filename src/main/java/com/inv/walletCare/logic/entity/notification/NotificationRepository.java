@@ -12,4 +12,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     @Query("SELECT n FROM Notification n WHERE n.owner.id= ?1 AND n.isDeleted = false")
     Optional<List<Notification>> findAllByUserId(Long userId);
+
+    @Query("SELECT n FROM Notification n WHERE n.id = ?1 AND n.owner.id = ?2 AND n.isDeleted = false")
+    Optional<Notification> findByIdAndUserId(Long notificationId, Long userId);
 }

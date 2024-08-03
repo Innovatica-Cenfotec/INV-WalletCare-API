@@ -75,7 +75,7 @@ public class ExpenseRestController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) authentication.getPrincipal();
 
-        Optional<Expense> existingExpense = expenseRepository.findByNameAndOwnerIdAndTemplate(expense.getName(), user.getId());
+        Optional<Expense> existingExpense = expenseRepository.findTemplateByNameAndOwnerId(expense.getName(), user.getId());
         if (existingExpense.isPresent() && expense.isTemplate()) {
             throw new FieldValidationException("name", "El nombre del gasto que ha ingresado ya está en uso. Por favor, ingrese uno diferente.");
         }
@@ -196,7 +196,7 @@ public class ExpenseRestController {
      */
     @GetMapping("/filter")
     public List<Expense> getExpensesByAccount(@RequestParam long account) {
-        return expenseRepository.findByAccount(account);
+        return expenseRepository.findAllByAccount(account);
     }
 
     /**
@@ -278,7 +278,7 @@ public class ExpenseRestController {
             throw new IllegalArgumentException("El gasto no existe o no tiene los permisos para modificarlo.");
         }
 
-        Optional<Expense> existingIncomeName = expenseRepository.findByNameAndOwnerIdAndTemplate(expense.getName(), currentUser.getId());
+        Optional<Expense> existingIncomeName = expenseRepository.findTemplateByNameAndOwnerId(expense.getName(), currentUser.getId());
         if (existingIncomeName.isPresent() && !Objects.equals(existingExpense.get().getId(), existingIncomeName.get().getId())) {
             throw new IllegalArgumentException("El nombre de la plantilla de gasto ya está en uso. Por favor, ingrese uno diferente.");
         }
@@ -328,7 +328,6 @@ public class ExpenseRestController {
 
         expense.get().setDeleted(true);
         expense.get().setOwner(currentUser); // To know who deleted it
-        expense.get().setUpdatedAt(new Date());
         expense.get().setDeletedAt(new Date());
         expenseRepository.save(expense.get());
     }
