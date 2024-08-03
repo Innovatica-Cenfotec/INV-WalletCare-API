@@ -26,6 +26,7 @@ import com.inv.walletCare.logic.validation.OnUpdate;
 import org.springframework.mail.MailException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -71,6 +72,7 @@ public class ExpenseRestController {
      * @throws Exception if the expense cannot be created.
      */
     @PostMapping
+    @Transactional
     public Expense createExpense(@Validated(OnCreate.class) @RequestBody Expense expense) throws Exception {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) authentication.getPrincipal();
@@ -216,6 +218,7 @@ public class ExpenseRestController {
      * @throws Exception details
      */
     @PostMapping("/add-to-account")
+    @Transactional
     public void addExpenseToAccount(@RequestBody Expense expense) throws Exception {
         Optional<Account> account = accountRepository.findById(expense.getAccount().getId());
         if (account.isEmpty()) {
@@ -269,6 +272,7 @@ public class ExpenseRestController {
      * @throws RuntimeException if the expense with the specified ID is not found or not owned by the current user.
      */
     @PutMapping("/{id}")
+    @Transactional
     public Expense updateExpense(@Validated(OnUpdate.class) @PathVariable Long id, @RequestBody Expense expense) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
@@ -313,6 +317,7 @@ public class ExpenseRestController {
      * @throws RuntimeException if the expense is not found or not owned by the current user.
      */
     @DeleteMapping("/{id}")
+    @Transactional
     public void deleteExpense(@PathVariable Long id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();

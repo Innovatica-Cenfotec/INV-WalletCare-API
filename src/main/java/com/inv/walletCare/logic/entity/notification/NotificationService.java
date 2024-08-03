@@ -3,6 +3,7 @@ package com.inv.walletCare.logic.entity.notification;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.entity.user.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
@@ -46,6 +47,7 @@ public class NotificationService {
      * @param notificationId Long value with the notification id.
      * @param userId Long value with the user id.
      */
+    @Transactional
     public void markNotificationAsRead(Long notificationId, Long userId) {
         Notification notification = checkIfNotificationExist(notificationId, userId).orElse(null);
         if (notification != null) {
@@ -60,6 +62,7 @@ public class NotificationService {
      * @param notificationId Long value with the notification id.
      * @param userId Long value with the user id.
      */
+    @Transactional
     public void markNotificationAsNotRead(Long notificationId, Long userId) {
         Notification notification = checkIfNotificationExist(notificationId, userId).orElse(null);
         if (notification != null) {
@@ -74,6 +77,7 @@ public class NotificationService {
      * @param notificationId Long value with the notification id.
      * @param userId Long value with the user id.
      */
+    @Transactional
     public void markNotificationAsDeleted(Long notificationId, Long userId) {
         Notification notification = checkIfNotificationExist(notificationId, userId).orElse(null);
         if (notification != null) {
@@ -88,6 +92,7 @@ public class NotificationService {
      * @param notificationBody Notification body and receiver email.
      * @return The body of the notification.
      */
+    @Transactional
     public Optional<Notification> sendNotificationByUserEmail(NotificationResponse notificationBody)
             throws Exception {
         User receiver = userRepository.findByEmail(notificationBody.getReceiverEmail())
