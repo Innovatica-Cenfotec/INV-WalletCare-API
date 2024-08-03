@@ -207,17 +207,7 @@ public class ExpenseRestController {
     public List<Expense> getExpenseTemplatesByUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) authentication.getPrincipal();
-
-        List<Expense> allExpenses = expenseRepository.findAllByUserId(user.getId());
-        List<Expense> expenseTemplates = new ArrayList<>();
-
-        for (Expense expense : allExpenses) {
-            if (expense.isTemplate()) {
-                expenseTemplates.add(expense);
-            }
-        }
-
-        return expenseTemplates;
+        return expenseRepository.findAllTemplatesByUserId(user.getId());
     }
 
     /**
