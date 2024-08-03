@@ -43,10 +43,12 @@ public class NotificationService {
      * @param userId Long value with the user id.
      */
     public void markNotificationAsRead(Long notificationId, Long userId) {
-        Notification notification = checkIfNotificationExist(notificationId, userId).get();
-        notification.setRead(true);
-        notification.setUpdatedAt(new Date());
-        notificationRepository.save(notification);
+        Notification notification = checkIfNotificationExist(notificationId, userId).orElse(null);
+        if (notification != null) {
+            notification.setRead(true);
+            notification.setUpdatedAt(new Date());
+            notificationRepository.save(notification);
+        }
     }
 
     /**
@@ -55,10 +57,12 @@ public class NotificationService {
      * @param userId Long value with the user id.
      */
     public void markNotificationAsDeleted(Long notificationId, Long userId) {
-        Notification notification = checkIfNotificationExist(notificationId, userId).get();
-        notification.setDeleted(true);
-        notification.setDeletedAt(new Date());
-        notificationRepository.save(notification);
+        Notification notification = checkIfNotificationExist(notificationId, userId).orElse(null);
+        if (notification != null) {
+            notification.setDeleted(true);
+            notification.setDeletedAt(new Date());
+            notificationRepository.save(notification);
+        }
     }
 
     /**

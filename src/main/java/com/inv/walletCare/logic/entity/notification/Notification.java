@@ -53,7 +53,7 @@ public class Notification {
     /**
      * Message of the notification.
      */
-    @Column(name = "message", length = 255)
+    @Column(name = "message")
     @NotNull(groups = {OnCreate.class, OnUpdate.class },
             message = "El contenido de la notificación es requerido.")
     @Size(groups = {OnCreate.class, OnUpdate.class }, max = 255,
