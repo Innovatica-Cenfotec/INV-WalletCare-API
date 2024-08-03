@@ -93,7 +93,7 @@ public class NotificationService {
      * @return The body of the notification.
      */
     @Transactional
-    public Optional<Notification> sendNotificationByUserEmail(NotificationResponse notificationBody)
+    public Optional<Notification> sendNotificationByUserEmail(NotificationDTO notificationBody)
             throws Exception {
         User receiver = userRepository.findByEmail(notificationBody.getReceiverEmail())
                 .orElseThrow(() -> new Exception("El email del usuario no esta registrado en la aplicación."));

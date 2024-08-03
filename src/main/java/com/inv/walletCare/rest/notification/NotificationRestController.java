@@ -1,7 +1,7 @@
 package com.inv.walletCare.rest.notification;
 
 import com.inv.walletCare.logic.entity.notification.Notification;
-import com.inv.walletCare.logic.entity.notification.NotificationResponse;
+import com.inv.walletCare.logic.entity.notification.NotificationDTO;
 import com.inv.walletCare.logic.entity.notification.NotificationService;
 import com.inv.walletCare.logic.entity.user.User;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -39,7 +39,7 @@ public class NotificationRestController {
      */
     @PostMapping("/send")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Notification sendNotification( @RequestBody NotificationResponse notification) throws Exception {
+    public Notification sendNotification( @RequestBody NotificationDTO notification) throws Exception {
         return notificationService.sendNotificationByUserEmail(notification)
                 .orElseThrow(() -> new Exception("No se pudo mandar la notificación."));
     }

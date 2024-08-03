@@ -1,6 +1,6 @@
 package com.inv.walletCare.logic.entity.notification;
 
-public class NotificationResponse {
+public class NotificationDTO {
     /**
      * Email of the notification receiver.
      */
@@ -23,7 +23,7 @@ public class NotificationResponse {
 
 
     // CONSTRUCTOR -------------------------------------------------------------------
-    public NotificationResponse() {}
+    public NotificationDTO() {}
 
 
     // GET AND SETTERS ----------------------------------------------------------------
