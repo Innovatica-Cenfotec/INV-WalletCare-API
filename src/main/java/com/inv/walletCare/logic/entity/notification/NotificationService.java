@@ -1,5 +1,7 @@
 package com.inv.walletCare.logic.entity.notification;
 
+import com.inv.walletCare.logic.entity.user.User;
+import com.inv.walletCare.logic.entity.user.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -13,9 +15,11 @@ import java.util.Optional;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final UserRepository userRepository;
 
-    public NotificationService(NotificationRepository notificationRepository) {
+    public NotificationService(NotificationRepository notificationRepository, UserRepository userRepository) {
         this.notificationRepository = notificationRepository;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -52,6 +56,20 @@ public class NotificationService {
     }
 
     /**
+     * Mark a notification as not read by its id.
+     * @param notificationId Long value with the notification id.
+     * @param userId Long value with the user id.
+     */
+    public void markNotificationAsNotRead(Long notificationId, Long userId) {
+        Notification notification = checkIfNotificationExist(notificationId, userId).orElse(null);
+        if (notification != null) {
+            notification.setRead(false);
+            notification.setUpdatedAt(new Date());
+            notificationRepository.save(notification);
+        }
+    }
+
+    /**
      * Mark a notification as deleted by its id.
      * @param notificationId Long value with the notification id.
      * @param userId Long value with the user id.
@@ -66,12 +84,26 @@ public class NotificationService {
     }
 
     /**
-     * Save a notification with the body indicated.
-     * @param notification Body of the notification.
+     * Send a notification to a user search by email. This method set isRead = false.
+     * @param notificationBody Notification body and receiver email.
      * @return The body of the notification.
      */
-    public Notification save(Notification notification) {
-        return notificationRepository.save(notification);
+    public Optional<Notification> sendNotificationByUserEmail(NotificationResponse notificationBody)
+            throws Exception {
+        User receiver = userRepository.findByEmail(notificationBody.getReceiverEmail())
+                .orElseThrow(() -> new Exception("El email del usuario no esta registrado en la aplicación."));
+
+        Notification notification = new Notification();
+        notification.setOwner(receiver);
+        notification.setType(notificationBody.getType());
+        notification.setTitle(notificationBody.getTitle());
+        notification.setMessage(notificationBody.getMessage());
+        notification.setRead(false);
+        notification.setCreatedAt(new Date());
+        notification.setUpdatedAt(new Date());
+        notification.setDeleted(false);
+        notificationRepository.save(notification);
+        return Optional.of(notification);
     }
 
     /**

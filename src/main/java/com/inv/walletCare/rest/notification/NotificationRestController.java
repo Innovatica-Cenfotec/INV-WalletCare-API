@@ -1,6 +1,7 @@
 package com.inv.walletCare.rest.notification;
 
 import com.inv.walletCare.logic.entity.notification.Notification;
+import com.inv.walletCare.logic.entity.notification.NotificationResponse;
 import com.inv.walletCare.logic.entity.notification.NotificationService;
 import com.inv.walletCare.logic.entity.user.User;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -33,13 +34,14 @@ public class NotificationRestController {
     }
 
     /**
-     * Create a new notification. Only allow ADMIN and SUPER_ADMIN roles.
+     * Send a notification to user search by id. Only allow ADMIN and SUPER_ADMIN roles.
+     * @return The notification body.
      */
-    @PostMapping
+    @PostMapping("/send")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public void createNotification(Notification notification) throws Exception {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User currentUser = (User) authentication.getPrincipal();
+    public Notification sendNotification( @RequestBody NotificationResponse notification) throws Exception {
+        return notificationService.sendNotificationByUserEmail(notification)
+                .orElseThrow(() -> new Exception("No se pudo mandar la notificación."));
     }
 
     /**

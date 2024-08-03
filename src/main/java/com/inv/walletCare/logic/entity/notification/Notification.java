@@ -39,15 +39,15 @@ public class Notification {
     private String type;
 
     /**
-     * Name of the notification.
+     * Title of the notification.
      */
-    @Column(name = "name", length = 100, nullable = false)
+    @Column(name = "title", length = 100, nullable = false)
     @NotNull(groups = {OnUpdate.class},
-            message = "El nombre de la notificación es requerido.")
+            message = "El titulo de la notificación es requerido.")
     @Size(groups = {OnCreate.class, OnUpdate.class }, min = 1, max = 100,
-            message = "El nombre de la notificación solo puede tener entre 1 y 100 caracteres.")
+            message = "El titulo de la notificación solo puede tener entre 1 y 100 caracteres.")
     @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
-            message = "El nombre de la notificación solo puede contener letras, números y espacios.")
+            message = "El titulo de la notificación solo puede contener letras, números y espacios.")
     private String title;
 
     /**
@@ -133,16 +133,16 @@ public class Notification {
     }
 
     public @NotNull(groups = {OnUpdate.class},
-            message = "El nombre de la notificación es requerido.") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 1, max = 100,
-            message = "El nombre de la notificación solo puede tener entre 1 y 100 caracteres.") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
-            message = "El nombre de la notificación solo puede contener letras, números y espacios.") String getTitle() {
+            message = "El titulo de la notificación es requerido.") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 1, max = 100,
+            message = "El titulo de la notificación solo puede tener entre 1 y 100 caracteres.") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
+            message = "El titulo de la notificación solo puede contener letras, números y espacios.") String getTitle() {
         return title;
     }
 
     public void setTitle(@NotNull(groups = {OnUpdate.class},
-            message = "El nombre de la notificación es requerido.") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 1, max = 100,
-            message = "El nombre de la notificación solo puede tener entre 1 y 100 caracteres.") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
-            message = "El nombre de la notificación solo puede contener letras, números y espacios.") String title) {
+            message = "El titulo de la notificación es requerido.") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 1, max = 100,
+            message = "El titulo de la notificación solo puede tener entre 1 y 100 caracteres.") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
+            message = "El titulo de la notificación solo puede contener letras, números y espacios.") String title) {
         this.title = title;
     }
 
