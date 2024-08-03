@@ -2,10 +2,12 @@ package com.inv.walletCare.logic.entity.expense;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     @Query("SELECT i FROM Expense i WHERE i.owner.id= ?1 AND i.isDeleted = false")
     List<Expense> findAllByUserId(Long userId);
