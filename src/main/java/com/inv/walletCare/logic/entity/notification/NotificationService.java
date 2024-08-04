@@ -14,11 +14,22 @@ import java.util.Optional;
  */
 @Service
 public class NotificationService {
-
+    /**
+     * Notification repository interface.
+     */
     private final NotificationRepository notificationRepository;
+    /**
+     * User repository interface.
+     */
     private final UserRepository userRepository;
 
-    public NotificationService(NotificationRepository notificationRepository, UserRepository userRepository) {
+    /**
+     * Service constructor in charge of initializing required repositories. Replace @autowire.
+     * @param notificationRepository Notification repository interface.
+     * @param userRepository User repository interface.
+     */
+    public NotificationService(NotificationRepository notificationRepository,
+                               UserRepository userRepository) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
     }

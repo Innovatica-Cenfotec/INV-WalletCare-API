@@ -12,12 +12,22 @@ import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Rest controller for notification service. Url: "/notifications".
+ */
 @RestController
 @RequestMapping("/notifications")
 public class NotificationRestController {
-
+    /**
+     * Notification service class.
+     */
     private final NotificationService notificationService;
 
+    /**
+     * Rest controller constructor in charge of initializing required repositories and services.
+     * Replace @autowire.
+     * @param notificationService Notification service class.
+     */
     public NotificationRestController(NotificationService notificationService) {
         this.notificationService = notificationService;
     }
