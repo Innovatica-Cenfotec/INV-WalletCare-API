@@ -26,6 +26,10 @@ public class NotificationDTO {
 
 
     // CONSTRUCTOR -------------------------------------------------------------------
+
+    /**
+     * NotificationDTO default constructor.
+     */
     public NotificationDTO() {}
 
 
