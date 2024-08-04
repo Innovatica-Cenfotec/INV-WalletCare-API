@@ -102,6 +102,7 @@ public class NotificationService {
      * Send a notification to a user search by email. This method set isRead = false.
      * @param notificationBody Notification body and receiver email.
      * @return The body of the notification.
+     * @throws Exception Message indication that the user email is not registered.
      */
     @Transactional
     public Optional<Notification> sendNotificationByUserEmail(NotificationDTO notificationBody)
