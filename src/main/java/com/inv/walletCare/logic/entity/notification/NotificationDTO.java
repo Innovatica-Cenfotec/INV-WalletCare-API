@@ -9,7 +9,7 @@ public class NotificationDTO {
     /**
      * Title of the notification.
      */
-    private String type;
+    private NotificationType type;
 
     /**
      * Title of the notification.
@@ -36,11 +36,11 @@ public class NotificationDTO {
         this.receiverEmail = receiverEmail;
     }
 
-    public String getType() {
+    public NotificationType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(NotificationType type) {
         this.type = type;
     }
 

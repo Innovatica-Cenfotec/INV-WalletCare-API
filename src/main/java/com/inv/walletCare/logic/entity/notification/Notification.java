@@ -36,7 +36,7 @@ public class Notification {
      * Type of notification: "system" or "custom".
      */
     @Column(name = "type", length = 50)
-    private String type;
+    private NotificationType type;
 
     /**
      * Title of the notification.
@@ -124,11 +124,11 @@ public class Notification {
         this.owner = owner;
     }
 
-    public String getType() {
+    public NotificationType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(NotificationType type) {
         this.type = type;
     }
 
