@@ -33,9 +33,11 @@ public class Notification {
     private User owner;
 
     /**
-     * Type of notification: "system" or "custom".
+     * Type of notification: "achievement", "goal" or "tip".
      */
     @Column(name = "type", length = 50)
+    @Enumerated(EnumType.STRING)
+    @NotNull(groups = {OnCreate.class, OnUpdate.class }, message = "El tipo de notificación es requerido.")
     private NotificationType type;
 
     /**
@@ -124,11 +126,13 @@ public class Notification {
         this.owner = owner;
     }
 
-    public NotificationType getType() {
+    public @NotNull(groups = {OnCreate.class, OnUpdate.class},
+            message = "El tipo de notificación es requerido.") NotificationType getType() {
         return type;
     }
 
-    public void setType(NotificationType type) {
+    public void setType(@NotNull(groups = {OnCreate.class, OnUpdate.class},
+            message = "El tipo de notificación es requerido.") NotificationType type) {
         this.type = type;
     }
 

@@ -2,6 +2,6 @@ package com.inv.walletCare.logic.entity.notification;
 
 public enum NotificationType {
     ACHIEVEMENT,
-    GOALS,
+    GOAL,
     TIP
 }
