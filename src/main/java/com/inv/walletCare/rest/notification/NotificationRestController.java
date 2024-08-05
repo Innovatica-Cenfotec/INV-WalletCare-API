@@ -48,7 +48,7 @@ public class NotificationRestController {
      * @return The notification body.
      */
     @PostMapping("/send")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Notification sendNotification( @RequestBody NotificationDTO notification) throws Exception {
         return notificationService.sendNotificationByUserEmail(notification)
                 .orElseThrow(() -> new Exception("No se pudo mandar la notificación."));

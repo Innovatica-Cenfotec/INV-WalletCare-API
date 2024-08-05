@@ -64,7 +64,6 @@ public class NotificationService {
         if (notification != null) {
             notification.setRead(true);
             notification.setUpdatedAt(new Date());
-
         }
         return notificationRepository.save(notification);
     }
@@ -95,7 +94,6 @@ public class NotificationService {
         if (notification != null) {
             notification.setDeleted(true);
             notification.setDeletedAt(new Date());
-
         }
         return notificationRepository.save(notification);
     }
