@@ -1,7 +1,10 @@
 package com.inv.walletCare.rest.transaction;
 
 import com.inv.walletCare.logic.entity.Response;
+import com.inv.walletCare.logic.entity.account.AccountRepository;
 import com.inv.walletCare.logic.entity.helpers.Helper;
+import com.inv.walletCare.logic.entity.tools.BalanceDTO;
+import com.inv.walletCare.logic.entity.tools.ToolsService;
 import com.inv.walletCare.logic.entity.transaction.Transaction;
 import com.inv.walletCare.logic.entity.transaction.TransactionRepository;
 import com.inv.walletCare.logic.entity.transaction.TransactionService;
@@ -28,6 +31,12 @@ public class TransactionRestController {
     @Autowired
     private TransactionService transactionService;
 
+    @Autowired
+    private AccountRepository accountRepository;
+
+    @Autowired
+    private ToolsService toolsService;
+
     /**
      * Retrieves all the transaction by the accountId
      * @param id
@@ -36,6 +45,26 @@ public class TransactionRestController {
     @GetMapping("/{id}")
     public List<Transaction> getAllTrasactionsbyAccount(@PathVariable Long id){
         return transactionRepository.findAllByAccountId(id).get();
+    }
+
+    @GetMapping("/owner")
+    public List<Transaction> getAllTransactionsByOwner(){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+        return transactionRepository.findAllbyOwner(currentUser.getId()).get();
+    }
+
+    @GetMapping("/balances-account/{id}")
+    public BalanceDTO getBalancesCalcByAccount(@PathVariable Long id){
+
+        return toolsService.balancesCalculationsbyAccount(accountRepository.findById(id).get());
+    }
+
+    @GetMapping("/balances-user")
+    public BalanceDTO getBalancesCalcByUser(){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+        return toolsService.balancesCalculationsbyUser(currentUser);
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.inv.walletCare.logic.entity.expense;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.inv.walletCare.logic.entity.AmountTypeEnum;
 import com.inv.walletCare.logic.entity.FrequencyTypeEnum;
 import com.inv.walletCare.logic.entity.IncomeExpenceType;
@@ -30,14 +31,17 @@ public class Expense {
     private Long id;
 
     /**
-     * Owner of the income.
+     * Owner of the expense.
      */
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "owner_id", referencedColumnName = "id", nullable = false)
     private User owner;
 
+    /**
+     * Account of the expense.
+     */
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "account_id", referencedColumnName = "id", nullable = false)
+    @JoinColumn(name = "account_id", referencedColumnName = "id")
     private Account account;
 
     /**
@@ -48,24 +52,22 @@ public class Expense {
     private ExpenseCategory expenseCategory;
 
     /**
-     * Name of the tax
+     * Name of the expense
      */
-    @Column(name = "name", length = 50, nullable = false)
+    @Column(name = "name", length = 100, nullable = false)
     @NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido")
-    @Size(groups = {OnCreate.class, OnUpdate.class }, min = 4, max = 50,
-            message = "El nombre solo puede tener entre 4 y 50 caracteres")
-    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "^[a-zA-Z ]+$",
+    @Size(groups = {OnCreate.class, OnUpdate.class }, min = 4, max = 100,
+            message = "El nombre solo puede tener entre 4 y 100 caracteres")
+    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
             message = "El nombre solo puede contener letras y espacios")
     private String name;
 
     /**
-     * Description of the tax.
+     * Description of the expense.
      */
     @Column(name = "description", length = 255)
     @Size(groups = {OnCreate.class, OnUpdate.class }, max = 255,
             message = "La descripción debe tener menos de 255 caracteres")
-    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "^[a-zA-Z0-9 ]+$",
-            message = "La descripción solo puede contener letras, números y espacios")
     private String description;
 
     /**
@@ -88,6 +90,7 @@ public class Expense {
      */
     @Column(name = "is_template", nullable = false)
     @NotNull(groups = OnCreate.class, message = "Debe indicar si el gasto es una plantilla")
+    @JsonProperty(access = JsonProperty.Access.AUTO )
     private boolean isTemplate;
 
     /**
@@ -118,7 +121,6 @@ public class Expense {
     @NotNull(groups = {OnCreate.class, OnUpdate.class },
             message = "Debe indicar si el gasto es relevante para la declaración de impuestos")
     private boolean isTaxRelated;
-
 
     /**
      * Tax associated with the expense.
@@ -151,6 +153,16 @@ public class Expense {
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted;
 
+    /**
+     * Flag to indicate whether to add to a transaction
+     */
+    @Transient
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private boolean addTransaction;
+
+
+    // GET AND SETTERS ----------------------------------------------------------------
+
     public @NegativeOrZero(groups = OnUpdate.class, message = "El ID es requerido para actualizar un gasto") Long getId() {
         return id;
     }
@@ -167,6 +179,14 @@ public class Expense {
         this.owner = owner;
     }
 
+    public Account getAccount() {
+        return account;
+    }
+
+    public void setAccount(Account account) {
+        this.account = account;
+    }
+
     public ExpenseCategory getExpenseCategory() {
         return expenseCategory;
     }
@@ -175,35 +195,33 @@ public class Expense {
         this.expenseCategory = expenseCategory;
     }
 
-    public @NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 50,
-            message = "El nombre solo puede tener entre 4 y 50 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z ]+$",
+    public @NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 100,
+            message = "El nombre solo puede tener entre 4 y 100 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
             message = "El nombre solo puede contener letras y espacios") String getName() {
         return name;
     }
 
-    public void setName(@NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 50,
-            message = "El nombre solo puede tener entre 4 y 50 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z ]+$",
+    public void setName(@NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 100,
+            message = "El nombre solo puede tener entre 4 y 100 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
             message = "El nombre solo puede contener letras y espacios") String name) {
         this.name = name;
     }
 
     public @Size(groups = {OnCreate.class, OnUpdate.class}, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z0-9 ]+$",
-            message = "La descripción solo puede contener letras, números y espacios") String getDescription() {
+            message = "La descripción debe tener menos de 255 caracteres") String getDescription() {
         return description;
     }
 
     public void setDescription(@Size(groups = {OnCreate.class, OnUpdate.class}, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z0-9 ]+$",
-            message = "La descripción solo puede contener letras, números y espacios") String description) {
+            message = "La descripción debe tener menos de 255 caracteres") String description) {
         this.description = description;
     }
 
-    public @Min(groups = {OnCreate.class, OnUpdate.class}, value = 0, message = "El monto del ingreso debe ser mayor a 0") BigDecimal getAmount() {
+    public @Min(groups = {OnCreate.class, OnUpdate.class}, value = 0, message = "El monto del gasto debe ser mayor a 0") BigDecimal getAmount() {
         return amount;
     }
 
-    public void setAmount(@Min(groups = {OnCreate.class, OnUpdate.class}, value = 0, message = "El monto del ingreso debe ser mayor a 0") BigDecimal amount) {
+    public void setAmount(@Min(groups = {OnCreate.class, OnUpdate.class}, value = 0, message = "El monto del gasto debe ser mayor a 0") BigDecimal amount) {
         this.amount = amount;
     }
 
@@ -215,7 +233,8 @@ public class Expense {
         this.amountType = amountType;
     }
 
-    public @NotNull(groups = OnCreate.class, message = "Debe indicar si el gasto es una plantilla") boolean isTemplate() {
+    @NotNull(groups = OnCreate.class, message = "Debe indicar si el gasto es una plantilla")
+    public boolean isTemplate() {
         return isTemplate;
     }
 
@@ -247,8 +266,9 @@ public class Expense {
         this.scheduledDay = scheduledDay;
     }
 
-    public @NotNull(groups = {OnCreate.class, OnUpdate.class},
-            message = "Debe indicar si el gasto es relevante para la declaración de impuestos") boolean isTaxRelated() {
+    @NotNull(groups = {OnCreate.class, OnUpdate.class},
+            message = "Debe indicar si el gasto es relevante para la declaración de impuestos")
+    public boolean isTaxRelated() {
         return isTaxRelated;
     }
 
@@ -289,7 +309,7 @@ public class Expense {
         this.deletedAt = deletedAt;
     }
 
-    public boolean getDeleted() {
+    public boolean isDeleted() {
         return isDeleted;
     }
 
@@ -297,15 +317,11 @@ public class Expense {
         isDeleted = deleted;
     }
 
-    public Account getAccount() {
-        return account;
+    public boolean isAddTransaction() {
+        return addTransaction;
     }
 
-    public void setAccount(Account account) {
-        this.account = account;
-    }
-
-    public boolean isDeleted() {
-        return isDeleted;
+    public void setAddTransaction(boolean addTransaction) {
+        this.addTransaction = addTransaction;
     }
 }

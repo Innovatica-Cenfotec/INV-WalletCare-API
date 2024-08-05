@@ -8,6 +8,9 @@ import com.inv.walletCare.logic.entity.accountUser.AccountUser;
 import com.inv.walletCare.logic.entity.accountUser.AccountUserRespository;
 import com.inv.walletCare.logic.entity.email.Email;
 import com.inv.walletCare.logic.entity.email.EmailSenderService;
+import com.inv.walletCare.logic.entity.expense.ExpenseService;
+import com.inv.walletCare.logic.entity.incomeAllocation.IncomeAllocationService;
+import com.inv.walletCare.logic.entity.transaction.TransactionService;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.entity.user.UserRepository;
 import com.inv.walletCare.logic.exceptions.FieldValidationException;
@@ -36,15 +39,19 @@ public class AccountRestController {
 
     @Autowired
     private AccountRepository accountRepository;
-
     @Autowired
     private AccountUserRespository accountUserRepository;
-
     @Autowired
     private EmailSenderService emailSenderService;
-
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private TransactionService transactionService;
+    @Autowired
+    private IncomeAllocationService incomeAllocationService;
+    @Autowired
+    private ExpenseService expenseService;
+
 
     /**
      * Retrieves a list of {@link Account} objects associated with the currently authenticated user.
@@ -139,13 +146,14 @@ public class AccountRestController {
      * @throws RuntimeException if the account is not found or not owned by the current user.
      */
     @DeleteMapping("/{id}")
-    public void deleteAccount(@PathVariable Long id) {
+    public void deleteAccount(@PathVariable Long id) throws Exception {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
 
         Optional<Account> account = accountRepository.findByIdAndOwnerId(id, currentUser.getId());
+
         if (account.isEmpty()) {
-            throw new IllegalArgumentException("La cuenta no se encontró o no pertenece al usuario actual.");
+            throw new IllegalArgumentException("No eres el propietario de esta cuenta, no puedes eliminarla.");
         }
 
         if (account.get().isDefault()) {
@@ -156,6 +164,44 @@ public class AccountRestController {
             throw new IllegalArgumentException("No se puede eliminar una cuenta con saldo distinto de cero.");
         }
 
+        if (account.get().getType().equals(AccountTypeEnum.SHARED)) {
+
+            //Sends the notification email
+            var mail = new Email();
+            mail.setSubject("Notificación de eliminación de cuenta compartida de " + account.get().getOwner().getName() + " nombre: " + account.get().getName() + ".");
+            var params = new HashMap<String, String>();
+
+            Optional<List<AccountUser>> accountUsers = accountUserRepository.findAllByAccountID(id);
+            /* if the current user is the owner of the account, return all users */
+            if (account.get().getOwner().getId() == currentUser.getId()) {
+                for (var member : accountUsers.get()) {
+                    /* transfer transactions */
+                    transactionService.transferTransactions(member.getId(), account.get().getId());
+
+                    /* transfer incomes */
+                    incomeAllocationService.transferIncomes(member.getId(), account.get().getId());
+
+                    /* transfer expenses */
+                    expenseService.transferExpenses(member.getId(), account.get().getId());
+
+                    /* set email parametrization */
+                    params.clear();
+                    params.put("accountOwner", account.get().getOwner().getEmail());
+                    params.put("accountMember", member.getUser().getEmail());
+                    params.put("accountName", account.get().getName());
+                    mail.setTo(member.getUser().getEmail());
+                    emailSenderService.sendEmail(mail, "DeleteSharedAccount", params);
+                }
+            }
+        }
+        /* transfer transactions */
+        transactionService.transferTransactions(currentUser.getId(), account.get().getId());
+
+        /* transfer incomes */
+        incomeAllocationService.transferIncomes(currentUser.getId(), account.get().getId());
+
+        /* transfer expenses */
+        expenseService.transferExpenses(currentUser.getId(), account.get().getId());
         account.get().setDeleted(true);
         account.get().setUpdatedAt(new Date());
         account.get().setDeletedAt(new Date());
@@ -177,19 +223,19 @@ public class AccountRestController {
 
         Optional<Account> existingAccount = accountRepository.findByIdAndOwnerId(id, currentUser.getId());
         if (existingAccount.isEmpty()) {
-            throw new IllegalArgumentException("La cuenta no se encontró o no pertenece al usuario actual.");
+            throw new IllegalArgumentException("No eres el propietario de esta cuenta, no puedes editarla.");
         }
-        
+
         // Validate that the account name is unique for the user
         var existingAccountName = accountRepository.findByNameAndOwnerId(account.getName(), currentUser.getId());
-        if (existingAccountName.isPresent()) {
+        if (existingAccountName.isPresent() && existingAccountName.get().getId() != id) {
             throw new FieldValidationException("name", "El nombre de la cuenta que has elegido ya está en uso. Por favor, ingresa uno diferente");
         }
-        
+
         // Checks if the account is shared and notifies all members.
         if (existingAccount.get().getType() == AccountTypeEnum.SHARED) {
             Optional<List<AccountUser>> accountUsers = accountUserRepository.findAllByAccountID(id);
-            
+
             if (accountUsers.isPresent()) {
                 // Send email parallelly to all members
                 List<CompletableFuture<Void>> futures = new ArrayList<>();
@@ -303,6 +349,16 @@ public class AccountRestController {
             if (sharedAccount.get().getInvitationStatus() == 3) {
                 throw new Exception("El usuario ha rechazado la invitación a esta cuenta");
             }
+
+            if (sharedAccount.get().getInvitationStatus() == 4) {
+                var newInvitation = sharedAccount.map(modifiedAccountUser -> {
+                    modifiedAccountUser.setInvitationStatus(1);
+                    modifiedAccountUser.setActive(false);
+                    modifiedAccountUser.setLeftAt(null);
+                    return accountUserRepository.save(modifiedAccountUser);
+                });
+                newAccountUser = newInvitation.get();
+            }
         }
 
         Email emailDetails = new Email();
@@ -384,6 +440,14 @@ public class AccountRestController {
         }
 
         switch (sharedAccount.get().getInvitationStatus()) {
+            case 1:
+                sharedAccount.map(existingAccount -> {
+                    existingAccount.setInvitationStatus(4);
+                    existingAccount.setLeftAt(new Date());
+                    existingAccount.setActive(false);
+                    return accountUserRepository.save(existingAccount);
+                });
+                break;
             case 2:
                 sharedAccount.map(existingAccount -> {
                     existingAccount.setInvitationStatus(4);
@@ -400,6 +464,17 @@ public class AccountRestController {
                 throw new ValidationException("Tu estado en esta cuenta compartida no esta reconocido por el sistema, intenta esta acción mas tarde.");
 
         }
+
+        //Transfer Incomes
+        incomeAllocationService.transferIncomes(accountUser.getUser().getId(), account.get().getId());
+
+        //Tranfer Expenses
+        expenseService.transferExpenses(accountUser.getUser().getId(), account.get().getId());
+
+        //Transfer Transactions
+        transactionService.transferTransactions(accountUser.getUser().getId(), account.get().getId());
+
+        //Sends the notification email
         var mail = new Email();
         mail.setSubject("Notificación de salida de cuenta compartida.");
 
@@ -418,7 +493,7 @@ public class AccountRestController {
             //The Owner remove the memeber from the shared account
             mail.setTo(sharedAccount.get().getUser().getEmail());
             emailSenderService.sendEmail(mail, "RemoveFromSharedAccount", params);
-            message = "Se ha eliminado correctamente al usuario " + sharedAccount.get().getUser().getEmail() + "de la cuenta compartida. ";
+            message = "Se ha eliminado correctamente al usuario " + sharedAccount.get().getUser().getEmail() + " de la cuenta compartida. ";
         }
         return ResponseEntity.ok(new Response(message));
     }
