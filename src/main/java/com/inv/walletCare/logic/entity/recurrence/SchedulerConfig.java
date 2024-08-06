@@ -19,6 +19,9 @@ public class SchedulerConfig {
     @Autowired
     private ExpenseRecurrenceService expenseService;
 
+    @Autowired
+    private SavingRecurrenceService savingService;
+
     /**
      * Runs a task daily at midnight.
      */
@@ -26,6 +29,7 @@ public class SchedulerConfig {
     public void runDaily() {
         incomeService.processIncome(FrequencyTypeEnum.DAILY);
         expenseService.processExpense(FrequencyTypeEnum.DAILY);
+        savingService.processSaving(FrequencyTypeEnum.DAILY);
     }
 
     /**
@@ -35,6 +39,7 @@ public class SchedulerConfig {
     public void runWeekly() {
         incomeService.processIncome(FrequencyTypeEnum.WEEKLY);
         expenseService.processExpense(FrequencyTypeEnum.WEEKLY);
+        savingService.processSaving(FrequencyTypeEnum.WEEKLY);
     }
 
     /**
@@ -44,6 +49,7 @@ public class SchedulerConfig {
     public void runMonthly() {
         incomeService.processIncome(FrequencyTypeEnum.MONTHLY);
         expenseService.processExpense(FrequencyTypeEnum.MONTHLY);
+        savingService.processSaving(FrequencyTypeEnum.MONTHLY);
     }
 
     /**
@@ -53,6 +59,7 @@ public class SchedulerConfig {
     public void runAnnual() {
         incomeService.processIncome(FrequencyTypeEnum.ANNUAL);
         expenseService.processExpense(FrequencyTypeEnum.ANNUAL);
+        savingService.processSaving(FrequencyTypeEnum.ANNUAL);
     }
 
     /**
@@ -62,5 +69,6 @@ public class SchedulerConfig {
     public void runBiweekly() {
         incomeService.processIncome(FrequencyTypeEnum.BIWEEKLY);
         expenseService.processExpense(FrequencyTypeEnum.BIWEEKLY);
+        savingService.processSaving(FrequencyTypeEnum.BIWEEKLY);
     }
 }

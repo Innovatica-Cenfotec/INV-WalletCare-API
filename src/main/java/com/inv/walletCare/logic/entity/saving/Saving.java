@@ -1,14 +1,14 @@
 package com.inv.walletCare.logic.entity.saving;
 
+import com.inv.walletCare.logic.entity.FrequencyTypeEnum;
+import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.validation.OnCreate;
 import com.inv.walletCare.logic.validation.OnUpdate;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NegativeOrZero;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 /**
@@ -29,7 +29,7 @@ public class Saving {
      * Owner of the saving.
      */
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "owner_id", nullable = false)
+    @JoinColumn(name = "owner_id", referencedColumnName = "id", nullable = false)
     private User owner;
 
     /**
@@ -75,6 +75,29 @@ public class Saving {
      */
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted;
+
+    @Column(name = "frequency", length = 50)
+    @Enumerated(EnumType.STRING)
+    private FrequencyTypeEnum frequency;
+
+    @Column(name = "scheduled_day")
+    private short scheduledDay;
+
+    @Column(name = "type", length = 50)
+    @Enumerated(EnumType.STRING)
+    @NotNull(groups = OnCreate.class, message = "El tipo de ahorro es requerido")
+    private SavingTypeEnum type;
+
+    @Transient
+    private boolean addTransaction;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "account_id", referencedColumnName = "id")
+    private Account account;
+
+    @Column(name = "amount", nullable = false)
+    @Min(groups = {OnCreate.class, OnUpdate.class }, value = 0, message = "El monto del ahorro debe ser mayor a 0")
+    private BigDecimal amount;
 
     public @NegativeOrZero(groups = OnCreate.class, message = "El ID es requerido para actualizar un ahorro") Long getId() {
         return id;
@@ -146,5 +169,53 @@ public class Saving {
 
     public void setDeleted(Boolean deleted) {
         isDeleted = deleted;
+    }
+
+    public FrequencyTypeEnum getFrequency() {
+        return frequency;
+    }
+
+    public void setFrequency(FrequencyTypeEnum frequency) {
+        this.frequency = frequency;
+    }
+
+    public short getScheduledDay() {
+        return scheduledDay;
+    }
+
+    public void setScheduledDay(short scheduledDay) {
+        this.scheduledDay = scheduledDay;
+    }
+
+    public @NotNull(groups = OnCreate.class, message = "El tipo de ahorro es requerido") SavingTypeEnum getType() {
+        return type;
+    }
+
+    public void setType(@NotNull(groups = OnCreate.class, message = "El tipo de ahorro es requerido") SavingTypeEnum type) {
+        this.type = type;
+    }
+
+    public boolean isAddTransaction() {
+        return addTransaction;
+    }
+
+    public void setAddTransaction(boolean addTransaction) {
+        this.addTransaction = addTransaction;
+    }
+
+    public Account getAccount() {
+        return account;
+    }
+
+    public void setAccount(Account account) {
+        this.account = account;
+    }
+
+    public @Min(groups = {OnCreate.class, OnUpdate.class}, value = 0, message = "El monto del gasto debe ser mayor a 0") BigDecimal getAmount() {
+        return amount;
+    }
+
+    public void setAmount(@Min(groups = {OnCreate.class, OnUpdate.class}, value = 0, message = "El monto del gasto debe ser mayor a 0") BigDecimal amount) {
+        this.amount = amount;
     }
 }

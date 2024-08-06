@@ -3,6 +3,7 @@ package com.inv.walletCare.logic.entity.recurrence;
 import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.expense.Expense;
 import com.inv.walletCare.logic.entity.income.Income;
+import com.inv.walletCare.logic.entity.saving.Saving;
 import com.inv.walletCare.logic.entity.user.User;
 import jakarta.persistence.*;
 
@@ -51,6 +52,14 @@ public class Recurrence {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "income_id", referencedColumnName = "id")
     private Income income;
+
+    /**
+     * The saving associated with the recurrence.
+     * This field is optional.
+     */
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "saving_id", referencedColumnName = "id")
+    private Saving saving;
 
     /**
      * The date and time when the recurrence was created.
@@ -119,5 +128,13 @@ public class Recurrence {
 
     public void setDeleted(boolean deleted) {
         isDeleted = deleted;
+    }
+
+    public Saving getSaving() {
+        return saving;
+    }
+
+    public void setSaving(Saving saving) {
+        this.saving = saving;
     }
 }

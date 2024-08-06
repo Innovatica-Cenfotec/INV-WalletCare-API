@@ -1,0 +1,181 @@
+package com.inv.walletCare.rest.saving;
+
+import com.inv.walletCare.logic.entity.FrequencyTypeEnum;
+import com.inv.walletCare.logic.entity.account.Account;
+import com.inv.walletCare.logic.entity.account.AccountRepository;
+import com.inv.walletCare.logic.entity.helpers.Helper;
+import com.inv.walletCare.logic.entity.recurrence.Recurrence;
+import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
+import com.inv.walletCare.logic.entity.saving.Saving;
+import com.inv.walletCare.logic.entity.saving.SavingRepository;
+import com.inv.walletCare.logic.entity.saving.SavingTypeEnum;
+import com.inv.walletCare.logic.entity.savingAllocation.SavingAllocation;
+import com.inv.walletCare.logic.entity.savingAllocation.SavingAllocationRepository;
+import com.inv.walletCare.logic.entity.transaction.Transaction;
+import com.inv.walletCare.logic.entity.transaction.TransactionService;
+import com.inv.walletCare.logic.entity.transaction.TransactionTypeEnum;
+import com.inv.walletCare.logic.entity.user.User;
+import com.inv.walletCare.logic.exceptions.FieldValidationException;
+import com.inv.walletCare.logic.validation.OnCreate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * REST controller for managing savings.
+ */
+@RestController
+@RequestMapping("/savings")
+public class SavingRestController {
+
+    @Autowired
+    private SavingRepository savingRepository;
+
+    @Autowired
+    private SavingAllocationRepository savingAllocationRepository;
+
+    @Autowired
+    private RecurrenceRepository recurrenceRepository;
+
+    @Autowired
+    private AccountRepository accountRepository;
+
+    @Autowired
+    private TransactionService transactionService;
+
+    /**
+     * Get all savings of the current authenticated user.
+     *
+     * @return the list of savings
+     */
+    @GetMapping
+    public List<Saving> getSavings() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+        return savingRepository.findByOwnerId(currentUser.getId());
+    }
+
+    /**
+     * Create a new saving.
+     *
+     * @param saving the saving to create
+     * @return the created saving
+     * @throws Exception if there is an error during creation
+     */
+    @PostMapping
+    public Saving addSaving(@Validated(OnCreate.class) @RequestBody Saving saving) throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+
+        // Check if the saving name already exists for the current user
+        Optional<Saving> existingSaving = savingRepository.findByNameAndOwnerId(saving.getName(), currentUser.getId());
+        if (existingSaving.isPresent()) {
+            throw new FieldValidationException("name",
+                    "El nombre del ahorro que ha ingresado ya está en uso. Por favor, ingrese uno diferente.");
+        }
+
+        // Validate the type of saving
+        if (saving.getType() == null) {
+            throw new FieldValidationException("type",
+                    "El tipo de ahorro es requerido.");
+        }
+
+        // Validate frequency and scheduled day for recurrent savings
+        if (saving.getType() == SavingTypeEnum.RECURRENCE) {
+            if (saving.getFrequency() == null) {
+                throw new FieldValidationException("frequency",
+                        "La frecuencia es requerida para los ahorros recurrentes.");
+            }
+
+            if (saving.getFrequency() == FrequencyTypeEnum.OTHER
+                    && (saving.getScheduledDay() <= 1 || saving.getScheduledDay() >= 31)) {
+                throw new FieldValidationException("frequency",
+                        "El día programado es requerido para los ahorros recurrentes.");
+            }
+        }
+
+        // Check if the account exists and belongs to the current user
+        Optional<Account> accountOpt = accountRepository.findById(saving.getAccount().getId());
+        if (accountOpt.isEmpty()) {
+            throw new IllegalArgumentException("Cuenta no encontrada o no pertenece al usuario actual.");
+        }
+        Account account = accountOpt.get();
+
+        // Validate the amount is greater than 0
+        if (saving.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new FieldValidationException("amount", "El monto del ahorro no puede ser negativo y debe ser mayor a 0.");
+        }
+
+        // Create and save the new saving
+        Saving newSaving = new Saving();
+        newSaving.setOwner(currentUser);
+        newSaving.setName(saving.getName());
+        newSaving.setAmount(new BigDecimal(0));
+        newSaving.setDescription(saving.getDescription());
+        newSaving.setType(saving.getType());
+        newSaving.setAccount(account);
+        newSaving.setCreatedAt(new Date());
+        newSaving.setUpdatedAt(new Date());
+        newSaving.setDeleted(false);
+
+        if (saving.getType() == SavingTypeEnum.RECURRENCE) {
+            newSaving.setFrequency(saving.getFrequency());
+            newSaving.setScheduledDay(saving.getScheduledDay());
+        }
+
+        Saving savingCreated = savingRepository.save(newSaving);
+
+        SavingAllocation savingAllocation = new SavingAllocation();
+        savingAllocation.setAccount(account);
+        savingAllocation.setSaving(savingCreated);
+        savingAllocation.setOwner(currentUser);
+        savingAllocation.setAmount(newSaving.getAmount());
+        savingAllocation.setCreatedAt(new Date());
+        savingAllocation.setUpdatedAt(new Date());
+        savingAllocation.setDeleted(false);
+        savingAllocationRepository.save(savingAllocation);
+
+        // Create a saving allocation and a transaction if addTransaction is true
+        if (saving.isAddTransaction()) {
+
+            BigDecimal savingAmount = saving.getAmount();
+            BigDecimal currentBalance = account.getBalance();
+            if (currentBalance.compareTo(savingAmount) == -1) {
+                throw new IllegalArgumentException("El valor no puede ser mayor al balance general de la cuenta.");
+            }
+
+            Transaction transaction = new Transaction();
+            transaction.setPreviousBalance(new BigDecimal(0));
+            transaction.setOwner(currentUser);
+            transaction.setAccount(account);
+            transaction.setAmount(Helper.reverse(saving.getAmount()));
+            transaction.setCreatedAt(new Date());
+            transaction.setUpdatedAt(null);
+            transaction.setDescription("Ahorro: " + savingCreated.getName());
+            transaction.setDeleted(false);
+            transaction.setType(TransactionTypeEnum.SAVING);
+            transaction.setSavingAllocation(savingAllocation);
+            transactionService.saveTransaction(transaction);
+        }
+
+        // Create a recurrence record for recurrent savings
+        if (saving.getType() == SavingTypeEnum.RECURRENCE) {
+            Recurrence recurrence = new Recurrence();
+            recurrence.setOwner(currentUser);
+            recurrence.setAccount(saving.getAccount());
+            recurrence.setSaving(savingCreated);
+            recurrence.setCreatedAt(new Date());
+            recurrence.setDeleted(false);
+            recurrenceRepository.save(recurrence);
+        }
+
+        return savingCreated;
+    }
+}

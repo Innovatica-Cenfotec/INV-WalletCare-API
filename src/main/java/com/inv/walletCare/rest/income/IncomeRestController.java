@@ -122,18 +122,18 @@ public class IncomeRestController {
                 throw new IllegalArgumentException("Cuenta no encontrada o no pertenece al usuario actual.");
             }
 
-            if (incomeCreated.getType().equals(IncomeExpenceType.UNIQUE)) {
-                // Associate the income with the account
-                IncomeAllocation incomeAllocation = new IncomeAllocation();
-                incomeAllocation.setAccount(account.get());
-                incomeAllocation.setIncome(newIncome);
-                incomeAllocation.setOwner(currentUser);
-                incomeAllocation.setPercentage(new BigDecimal(100));
-                incomeAllocation.setCreatedAt(new Date());
-                incomeAllocation.setUpdatedAt(new Date());
-                incomeAllocation.setDeleted(false);
-                var incomeAllocationCreated = incomeAllocationRepository.save(incomeAllocation);
+            // Associate the income with the account
+            IncomeAllocation incomeAllocation = new IncomeAllocation();
+            incomeAllocation.setAccount(account.get());
+            incomeAllocation.setIncome(newIncome);
+            incomeAllocation.setOwner(currentUser);
+            incomeAllocation.setPercentage(new BigDecimal(100));
+            incomeAllocation.setCreatedAt(new Date());
+            incomeAllocation.setUpdatedAt(new Date());
+            incomeAllocation.setDeleted(false);
+            var incomeAllocationCreated = incomeAllocationRepository.save(incomeAllocation);
 
+            if (incomeCreated.getType().equals(IncomeExpenceType.UNIQUE)) {
                 // Create a transaction for the income
                 var tran = new Transaction();
                 tran.setAmount(newIncome.getAmount());
