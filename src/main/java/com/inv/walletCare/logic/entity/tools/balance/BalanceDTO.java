@@ -1,4 +1,4 @@
-package com.inv.walletCare.logic.entity.tools;
+package com.inv.walletCare.logic.entity.tools.balance;
 
 import java.math.BigDecimal;
 

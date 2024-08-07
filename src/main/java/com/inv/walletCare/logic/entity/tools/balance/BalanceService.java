@@ -1,9 +1,9 @@
-package com.inv.walletCare.logic.entity.tools;
+package com.inv.walletCare.logic.entity.tools.balance;
 
 import com.inv.walletCare.logic.entity.account.Account;
-import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
 import com.inv.walletCare.logic.entity.helpers.Helper;
 import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
+import com.inv.walletCare.logic.entity.tools.balance.BalanceDTO;
 import com.inv.walletCare.logic.entity.transaction.TransactionRepository;
 import com.inv.walletCare.logic.entity.user.User;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,13 +13,10 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 @Service
-public class ToolsService {
+public class BalanceService {
 
     @Autowired
     private TransactionRepository transactionRepository;
-
-    @Autowired
-    private ExpenseRepository expenseRepository;
 
     @Autowired
     private RecurrenceRepository recurrenceRepository;
@@ -54,7 +51,7 @@ public class ToolsService {
         for (var exp : reccurrentTransactions.get()) {
             if (exp.get().getExpense() != null) {
                 recurrentExpense = recurrentExpense + exp.get().getExpense().getAmount().doubleValue();
-            }else if (exp.get().getIncome() != null){
+            } else if (exp.get().getIncome() != null) {
                 recurrentIncome = recurrentIncome + exp.get().getIncome().getAmount().doubleValue();
             }
         }
@@ -62,6 +59,7 @@ public class ToolsService {
 
         return new BalanceDTO(new BigDecimal(monthlyExpense), Helper.reverse(new BigDecimal(recurrentExpense)), new BigDecimal(monthlyIncome), new BigDecimal(recurrentIncome));
     }
+
     public BalanceDTO balancesCalculationsbyUser(User user) {
         var transactions = transactionRepository.findAllbyOwner(user.getId());
         var reccurrentTransactions = recurrenceRepository.findAllByOwner(user.getId());
@@ -92,11 +90,12 @@ public class ToolsService {
         for (var exp : reccurrentTransactions.get()) {
             if (exp.get().getExpense() != null) {
                 recurrentExpense = recurrentExpense + exp.get().getExpense().getAmount().doubleValue();
-            }else if (exp.get().getIncome() != null){
+            } else if (exp.get().getIncome() != null) {
                 recurrentIncome = recurrentIncome + exp.get().getIncome().getAmount().doubleValue();
             }
         }
 
         return new BalanceDTO(new BigDecimal(monthlyExpense), Helper.reverse(new BigDecimal(recurrentExpense)), new BigDecimal(monthlyIncome), new BigDecimal(recurrentIncome));
     }
+
 }
