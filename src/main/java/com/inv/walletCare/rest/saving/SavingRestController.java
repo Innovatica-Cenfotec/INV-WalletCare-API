@@ -178,4 +178,71 @@ public class SavingRestController {
 
         return savingCreated;
     }
+
+    /**
+     * Adds a saving to the account.
+     *
+     * @param saving the saving to add
+     * @throws Exception if there is an error during the process
+     */
+    @PostMapping("/add-to-account")
+    public void addSavingToAccount(@RequestBody Saving saving) throws Exception {
+        // Get the currently authenticated user
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+
+        // Find the account by ID and check if it exists
+        Optional<Account> account = accountRepository.findById(saving.getAccount().getId());
+        if (account.isEmpty()) {
+            throw new IllegalArgumentException("Cuenta no encontrada o no pertenece al usuario actual.");
+        }
+
+        // Find the saving by ID and check if it exists
+        Optional<Saving> existingSaving = savingRepository.findById(saving.getId());
+        if (existingSaving.isEmpty()) {
+            throw new IllegalArgumentException("Ahorro no encontrado o no pertenece al usuario actual.");
+        }
+
+        // If the saving type is UNIQUE, create a new saving allocation and transaction
+        if (existingSaving.get().getType().equals(SavingTypeEnum.UNIQUE)) {
+            // Create and save the saving allocation
+            SavingAllocation savingAllocation = new SavingAllocation();
+            savingAllocation.setAccount(account.get());
+            savingAllocation.setSaving(existingSaving.get());
+            savingAllocation.setOwner(currentUser);
+            savingAllocation.setAmount(Helper.reverse(existingSaving.get().getAmount()));
+            savingAllocation.setCreatedAt(new Date());
+            savingAllocation.setUpdatedAt(new Date());
+            savingAllocation.setDeleted(false);
+            var savingAllocationCreated = savingAllocationRepository.save(savingAllocation);
+
+            // Create and save the transaction
+            var transaction = new Transaction();
+            transaction.setAmount(existingSaving.get().getAmount());
+            transaction.setAccount(account.get());
+            transaction.setCreatedAt(new Date());
+            transaction.setUpdatedAt(null);
+            transaction.setDescription("Ahorro: " + existingSaving.get().getName());
+            transaction.setDeleted(false);
+            transaction.setType(TransactionTypeEnum.SAVING);
+            transaction.setSavingAllocation(savingAllocation);
+            transaction.setPreviousBalance(new BigDecimal(0));
+            transaction.setOwner(currentUser);
+            transaction.setIncomeAllocation(null);
+            transaction.setExpense(null);
+            transactionService.saveTransaction(transaction);
+        } else {
+            // If the saving type is not UNIQUE, create a new recurrence
+            Recurrence recurrence = new Recurrence();
+            recurrence.setOwner(currentUser);
+            recurrence.setAccount(account.get());
+            recurrence.setIncome(null);
+            recurrence.setExpense(null);
+            recurrence.setSaving(existingSaving.get());
+            recurrence.setCreatedAt(new Date());
+            recurrence.setDeleted(false);
+            recurrenceRepository.save(recurrence);
+        }
+    }
+
 }
