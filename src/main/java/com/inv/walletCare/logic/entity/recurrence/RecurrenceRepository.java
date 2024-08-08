@@ -24,6 +24,13 @@ public interface RecurrenceRepository extends JpaRepository<Recurrence, Long> {
            """)
     Optional<List<Recurrence>> findAllExpenseByFrequency(FrequencyTypeEnum frequency);
 
+    @Query("""
+            SELECT i FROM Recurrence i WHERE
+            i.account.isDeleted = false AND
+            i.saving.frequency = ?1
+            """)
+    Optional<List<Recurrence>> findAllSavingByFrequency(FrequencyTypeEnum frequency);
+
     @Query("SELECT i FROM Recurrence i WHERE i.isDeleted = false AND i.owner.id= ?1 AND i.account.id = ?2")
     List<Recurrence> findAllByOwnerAndAccountId(Long userId, Long accountID);
 

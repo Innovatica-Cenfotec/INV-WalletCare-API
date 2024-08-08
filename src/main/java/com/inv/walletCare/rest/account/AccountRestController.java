@@ -8,8 +8,9 @@ import com.inv.walletCare.logic.entity.accountUser.AccountUser;
 import com.inv.walletCare.logic.entity.accountUser.AccountUserRespository;
 import com.inv.walletCare.logic.entity.email.Email;
 import com.inv.walletCare.logic.entity.email.EmailSenderService;
-import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
-import com.inv.walletCare.logic.entity.incomeAllocation.IncomeAllocationRepository;
+import com.inv.walletCare.logic.entity.expense.ExpenseService;
+import com.inv.walletCare.logic.entity.incomeAllocation.IncomeAllocationService;
+import com.inv.walletCare.logic.entity.transaction.TransactionService;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.entity.user.UserRepository;
 import com.inv.walletCare.logic.exceptions.FieldValidationException;
@@ -37,11 +38,6 @@ import java.util.concurrent.CompletableFuture;
 public class AccountRestController {
 
     @Autowired
-    private IncomeAllocationRepository incomeAllocationRepository;
-
-    @Autowired
-    private ExpenseRepository expenseRepository;
-    @Autowired
     private AccountRepository accountRepository;
     @Autowired
     private AccountUserRespository accountUserRepository;
@@ -49,6 +45,12 @@ public class AccountRestController {
     private EmailSenderService emailSenderService;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private TransactionService transactionService;
+    @Autowired
+    private IncomeAllocationService incomeAllocationService;
+    @Autowired
+    private ExpenseService expenseService;
 
 
     /**
@@ -144,11 +146,12 @@ public class AccountRestController {
      * @throws RuntimeException if the account is not found or not owned by the current user.
      */
     @DeleteMapping("/{id}")
-    public void deleteAccount(@PathVariable Long id) {
+    public void deleteAccount(@PathVariable Long id) throws Exception {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
 
         Optional<Account> account = accountRepository.findByIdAndOwnerId(id, currentUser.getId());
+
         if (account.isEmpty()) {
             throw new IllegalArgumentException("No eres el propietario de esta cuenta, no puedes eliminarla.");
         }
@@ -161,6 +164,44 @@ public class AccountRestController {
             throw new IllegalArgumentException("No se puede eliminar una cuenta con saldo distinto de cero.");
         }
 
+        if (account.get().getType().equals(AccountTypeEnum.SHARED)) {
+
+            //Sends the notification email
+            var mail = new Email();
+            mail.setSubject("Notificación de eliminación de cuenta compartida de " + account.get().getOwner().getName() + " nombre: " + account.get().getName() + ".");
+            var params = new HashMap<String, String>();
+
+            Optional<List<AccountUser>> accountUsers = accountUserRepository.findAllByAccountID(id);
+            /* if the current user is the owner of the account, return all users */
+            if (account.get().getOwner().getId() == currentUser.getId()) {
+                for (var member : accountUsers.get()) {
+                    /* transfer transactions */
+                    transactionService.transferTransactions(member.getId(), account.get().getId());
+
+                    /* transfer incomes */
+                    incomeAllocationService.transferIncomes(member.getId(), account.get().getId());
+
+                    /* transfer expenses */
+                    expenseService.transferExpenses(member.getId(), account.get().getId());
+
+                    /* set email parametrization */
+                    params.clear();
+                    params.put("accountOwner", account.get().getOwner().getEmail());
+                    params.put("accountMember", member.getUser().getEmail());
+                    params.put("accountName", account.get().getName());
+                    mail.setTo(member.getUser().getEmail());
+                    emailSenderService.sendEmail(mail, "DeleteSharedAccount", params);
+                }
+            }
+        }
+        /* transfer transactions */
+        transactionService.transferTransactions(currentUser.getId(), account.get().getId());
+
+        /* transfer incomes */
+        incomeAllocationService.transferIncomes(currentUser.getId(), account.get().getId());
+
+        /* transfer expenses */
+        expenseService.transferExpenses(currentUser.getId(), account.get().getId());
         account.get().setDeleted(true);
         account.get().setUpdatedAt(new Date());
         account.get().setDeletedAt(new Date());
@@ -309,8 +350,8 @@ public class AccountRestController {
                 throw new Exception("El usuario ha rechazado la invitación a esta cuenta");
             }
 
-            if (sharedAccount.get().getInvitationStatus() == 4){
-                var newInvitation = sharedAccount.map(modifiedAccountUser ->{
+            if (sharedAccount.get().getInvitationStatus() == 4) {
+                var newInvitation = sharedAccount.map(modifiedAccountUser -> {
                     modifiedAccountUser.setInvitationStatus(1);
                     modifiedAccountUser.setActive(false);
                     modifiedAccountUser.setLeftAt(null);
@@ -424,28 +465,14 @@ public class AccountRestController {
 
         }
 
-        //transfer the incomes and expenses to the main account of the removed user
-        var incomesToTransfer = incomeAllocationRepository.findAllByAccountIdAndOwner(accountUser.getUser().getId(), account.get().getId());
-        var expensesToTransfer = expenseRepository.findAllByAccountIdAndOwner(accountUser.getUser().getId(), account.get().getId());
-        var accountsDeletedUser = accountRepository.findAllByOwnerId(accountUser.getUser().getId()).get();
-        Account mainAccount = accountsDeletedUser.stream().filter(Account::isDefault).findFirst().orElse(null);
+        //Transfer Incomes
+        incomeAllocationService.transferIncomes(accountUser.getUser().getId(), account.get().getId());
 
-        //incomes from
-        for (var income : incomesToTransfer.get()) {
-            income.map(updatedIncomeAllocation ->
-            {
-               updatedIncomeAllocation.setAccount(mainAccount);
-               return incomeAllocationRepository.save(updatedIncomeAllocation);
-            });
-        }
+        //Tranfer Expenses
+        expenseService.transferExpenses(accountUser.getUser().getId(), account.get().getId());
 
-        for (var expense : expensesToTransfer.get()){
-            expense.map(updatedExpense ->{
-               updatedExpense.setAccount(mainAccount);
-               return expenseRepository.save(updatedExpense);
-            });
-        }
-
+        //Transfer Transactions
+        transactionService.transferTransactions(accountUser.getUser().getId(), account.get().getId());
 
         //Sends the notification email
         var mail = new Email();
