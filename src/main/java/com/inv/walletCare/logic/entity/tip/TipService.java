@@ -146,6 +146,7 @@ public class TipService {
      * @return The created tip
      */
     public TipProposal createTip(User user) {
+        // AI config
         ChatLanguageModel model = VertexAiGeminiChatModel.builder()
                 .project(System.getenv("PROJECT_ID"))
                 .location(System.getenv("LOCATION"))
@@ -160,7 +161,6 @@ public class TipService {
         TipExtractor extractor = AiServices.create(TipExtractor.class, model);
         var tip = extractor.extractTip(data, current_date);
 
-        // Tip body
         TipProposal newTip = new TipProposal();
         newTip.setName(tip.getName());
         newTip.setDescription(tip.getDescription());
