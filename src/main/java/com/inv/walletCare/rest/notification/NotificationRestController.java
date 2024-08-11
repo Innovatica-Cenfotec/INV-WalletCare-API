@@ -60,10 +60,10 @@ public class NotificationRestController {
      * @throws RuntimeException if the notification is not found or not owned by the current user.
      */
     @PutMapping("/read/{id}")
-    public void readNotification(@PathVariable Long id) {
+    public Notification readNotification(@PathVariable Long id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
-        notificationService.markNotificationAsRead(id, currentUser.getId());
+        return notificationService.markNotificationAsRead(id, currentUser.getId());
     }
 
     /**
@@ -72,9 +72,9 @@ public class NotificationRestController {
      * @throws RuntimeException if the notification is not found or not owned by the current user.
      */
     @DeleteMapping("/{id}")
-    public void deleteNotification(@PathVariable Long id) {
+    public Notification deleteNotification(@PathVariable Long id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
-        notificationService.markNotificationAsDeleted(id, currentUser.getId());
+        return notificationService.markNotificationAsDeleted(id, currentUser.getId());
     }
 }
