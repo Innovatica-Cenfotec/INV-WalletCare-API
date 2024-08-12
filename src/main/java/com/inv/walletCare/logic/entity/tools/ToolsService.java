@@ -1,6 +1,5 @@
 package com.inv.walletCare.logic.entity.tools;
 
-import com.inv.walletCare.logic.entity.IncomeExpenceType;
 import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
 import com.inv.walletCare.logic.entity.helpers.Helper;
@@ -18,9 +17,6 @@ public class ToolsService {
 
     @Autowired
     private TransactionRepository transactionRepository;
-
-    @Autowired
-    private ExpenseRepository expenseRepository;
 
     @Autowired
     private RecurrenceRepository recurrenceRepository;
