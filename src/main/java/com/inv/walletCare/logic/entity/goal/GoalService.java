@@ -6,7 +6,6 @@ import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.account.AccountRepository;
 import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
 import com.inv.walletCare.logic.entity.rol.RoleEnum;
-import com.inv.walletCare.logic.entity.saving.SavingRepository;
 import com.inv.walletCare.logic.entity.transaction.TransactionRepository;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.entity.user.UserRepository;
@@ -28,9 +27,6 @@ import java.util.Optional;
 public class GoalService {
     @Autowired
     private AccountRepository accountRepository;
-
-    @Autowired
-    private SavingRepository savingRepository;
 
     @Autowired
     private RecurrenceRepository recurrenceRepository;
@@ -68,7 +64,7 @@ public class GoalService {
      * @return The JSON object
      */
     private String BuilderJson(User user) {
-        var recurrences = recurrenceRepository.findAllByOwner(user.getId());
+        var recurrences = recurrenceRepository.findAllByOwner(user.getId()).get();
         var accounts = accountRepository.findAllByOwnerId(user.getId());
         var transactions = transactionRepository.findAllbyOwner(user.getId());
         var goals = goalRepository.findAllByOwnerId(user.getId());

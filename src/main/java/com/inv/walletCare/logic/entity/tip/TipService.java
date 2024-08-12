@@ -3,7 +3,6 @@ package com.inv.walletCare.logic.entity.tip;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.account.AccountRepository;
 import com.inv.walletCare.logic.entity.notification.NotificationDTO;
 import com.inv.walletCare.logic.entity.notification.NotificationService;
@@ -22,7 +21,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.Date;
-import java.util.Optional;
 
 @Service
 public class TipService {
@@ -71,7 +69,7 @@ public class TipService {
      * @return The JSON object
      */
     private String BuilderJson(User user) {
-        var recurrences = recurrenceRepository.findAllByOwner(user.getId());
+        var recurrences = recurrenceRepository.findAllByOwner(user.getId()).get();
         var accounts = accountRepository.findAllByOwnerId(user.getId());
         var transactions = transactionRepository.findAllbyOwner(user.getId());
 
