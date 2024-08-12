@@ -1,5 +1,6 @@
 package com.inv.walletCare.logic.entity.tools;
 
+import com.inv.walletCare.logic.entity.IncomeExpenceType;
 import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
 import com.inv.walletCare.logic.entity.helpers.Helper;
@@ -62,6 +63,7 @@ public class ToolsService {
 
         return new BalanceDTO(new BigDecimal(monthlyExpense), Helper.reverse(new BigDecimal(recurrentExpense)), new BigDecimal(monthlyIncome), new BigDecimal(recurrentIncome));
     }
+
     public BalanceDTO balancesCalculationsbyUser(User user) {
         var transactions = transactionRepository.findAllbyOwner(user.getId());
         var reccurrentTransactions = recurrenceRepository.findAllByOwner(user.getId());
@@ -90,10 +92,10 @@ public class ToolsService {
         }
 
         for (var exp : reccurrentTransactions.get()) {
-            if (exp.get().getExpense() != null) {
-                recurrentExpense = recurrentExpense + exp.get().getExpense().getAmount().doubleValue();
-            }else if (exp.get().getIncome() != null){
-                recurrentIncome = recurrentIncome + exp.get().getIncome().getAmount().doubleValue();
+            if (exp.getExpense() != null) {
+                recurrentExpense = recurrentExpense + exp.getExpense().getAmount().doubleValue();
+            }else if (exp.getIncome() != null){
+                recurrentIncome = recurrentIncome + exp.getIncome().getAmount().doubleValue();
             }
         }
 
