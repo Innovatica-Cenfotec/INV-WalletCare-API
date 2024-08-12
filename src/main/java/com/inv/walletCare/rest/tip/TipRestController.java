@@ -1,7 +1,5 @@
 package com.inv.walletCare.rest.tip;
 
-import com.inv.walletCare.logic.entity.goal.Goal;
-import com.inv.walletCare.logic.entity.goal.GoalService;
 import com.inv.walletCare.logic.entity.notification.NotificationDTO;
 import com.inv.walletCare.logic.entity.notification.NotificationService;
 import com.inv.walletCare.logic.entity.notification.NotificationType;
