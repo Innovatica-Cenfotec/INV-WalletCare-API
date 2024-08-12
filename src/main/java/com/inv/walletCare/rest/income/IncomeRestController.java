@@ -56,7 +56,7 @@ public class IncomeRestController {
     public List<Income> getIncomes() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
-        return incomeRepository.findAllByUserId(currentUser.getId());
+        return incomeRepository.findAllByOwnerId(currentUser.getId());
     }
 
     @PostMapping
