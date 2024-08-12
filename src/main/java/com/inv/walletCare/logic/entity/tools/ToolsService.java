@@ -1,7 +1,6 @@
 package com.inv.walletCare.logic.entity.tools;
 
 import com.inv.walletCare.logic.entity.account.Account;
-import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
 import com.inv.walletCare.logic.entity.helpers.Helper;
 import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
 import com.inv.walletCare.logic.entity.transaction.TransactionRepository;
