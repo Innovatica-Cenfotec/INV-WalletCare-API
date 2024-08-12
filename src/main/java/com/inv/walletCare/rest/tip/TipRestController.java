@@ -26,8 +26,8 @@ public class TipRestController {
     }
 
     /***
-     * Propose a goal
-     * @return The proposed goal
+     * Send a notification with the proposed tip.
+     * @return The proposed tip.
      */
     @PostMapping("/propose")
     public TipProposal proposeGoal() throws Exception {
