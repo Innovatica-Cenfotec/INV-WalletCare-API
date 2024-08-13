@@ -3,7 +3,6 @@ package com.inv.walletCare.logic.entity.tools.balance;
 import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.helpers.Helper;
 import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
-import com.inv.walletCare.logic.entity.tools.balance.BalanceDTO;
 import com.inv.walletCare.logic.entity.transaction.TransactionRepository;
 import com.inv.walletCare.logic.entity.user.User;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +11,9 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.Date;
 
+/**
+ * Handles the Balance calculations
+ */
 @Service
 public class BalanceService {
 
@@ -21,6 +23,12 @@ public class BalanceService {
     @Autowired
     private RecurrenceRepository recurrenceRepository;
 
+
+    /**
+     * This method calculates all the balances in expenses and incomes for the account
+     * @param account is the account that need the calculation
+     * @return returns the balances for the account
+     */
     public BalanceDTO balancesCalculationsbyAccount(Account account) {
         var transactions = transactionRepository.findAllByAccountId(account.getId());
         var reccurrentTransactions = recurrenceRepository.findAllByAccountId(account.getId());
@@ -60,6 +68,12 @@ public class BalanceService {
         return new BalanceDTO(new BigDecimal(monthlyExpense), Helper.reverse(new BigDecimal(recurrentExpense)), new BigDecimal(monthlyIncome), new BigDecimal(recurrentIncome));
     }
 
+
+    /**
+     * This method calculates all the balances in expenses and incomes for the user
+     * @param user is the user that needs the calculations
+     * @return returns de balances for the user
+     */
     public BalanceDTO balancesCalculationsbyUser(User user) {
         var transactions = transactionRepository.findAllbyOwner(user.getId());
         var reccurrentTransactions = recurrenceRepository.findAllByOwner(user.getId());

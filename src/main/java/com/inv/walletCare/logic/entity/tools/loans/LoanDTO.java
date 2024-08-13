@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 
 public class LoanDTO {
     private CurrencyTypeEnum currency;
-    private BigDecimal ammount;
+    private BigDecimal amount;
     private Long paymentDeadline;
     private BigDecimal interestRate;
     private BigDecimal fee;
@@ -12,9 +12,9 @@ public class LoanDTO {
     public LoanDTO() {
     }
 
-    public LoanDTO(CurrencyTypeEnum currency, BigDecimal ammount, Long paymentDeadline, BigDecimal interestRate, BigDecimal fee) {
+    public LoanDTO(CurrencyTypeEnum currency, BigDecimal amount, Long paymentDeadline, BigDecimal interestRate, BigDecimal fee) {
         this.currency = currency;
-        this.ammount = ammount;
+        this.amount = amount;
         this.paymentDeadline = paymentDeadline;
         this.interestRate = interestRate;
         this.fee = fee;
@@ -28,12 +28,12 @@ public class LoanDTO {
         this.currency = currency;
     }
 
-    public BigDecimal getAmmount() {
-        return ammount;
+    public BigDecimal getAmount() {
+        return amount;
     }
 
-    public void setAmmount(BigDecimal ammount) {
-        this.ammount = ammount;
+    public void setAmount(BigDecimal amount) {
+        this.amount = amount;
     }
 
     public Long getPaymentDeadline() {
