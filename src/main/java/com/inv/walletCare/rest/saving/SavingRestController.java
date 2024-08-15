@@ -249,6 +249,19 @@ public class SavingRestController {
             recurrenceRepository.save(recurrence);
         }
     }
+    @DeleteMapping("/{id}")
+    public void deleteSaving(@PathVariable Long id){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+        Optional<Saving> existingSaving = savingRepository.findByIdAndUserId(id, currentUser.getId());
+        if (existingSaving.get().getOwner().getId()!=currentUser.getId()) {
+            throw new IllegalArgumentException("No eres el propietario de esta cuenta, no puedes eliminarla.");
+        }
+        existingSaving.get().setDeletedAt(new Date());
+        existingSaving.get().setDeleted(true);
+        existingSaving.get().setUpdatedAt(new Date());
+        savingRepository.save(existingSaving.get());
+    }
 
     /**
      * Update an existing saving.
