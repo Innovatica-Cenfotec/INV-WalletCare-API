@@ -24,19 +24,19 @@ import java.util.Date;
 
 @Service
 public class TipService {
-    private final AccountRepository accountRepository;
-    private final RecurrenceRepository recurrenceRepository;
-    private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
+    private final AccountRepository accountRepository;
+    private final TransactionRepository transactionRepository;
+    private final RecurrenceRepository recurrenceRepository;
     private final NotificationService notificationService;
 
-    public TipService(AccountRepository accountRepository, RecurrenceRepository recurrenceRepository,
-                      TransactionRepository transactionRepository, UserRepository userRepository,
+    public TipService(UserRepository userRepository, AccountRepository accountRepository,
+                      TransactionRepository transactionRepository, RecurrenceRepository recurrenceRepository,
                       NotificationService notificationService) {
-        this.accountRepository = accountRepository;
-        this.recurrenceRepository = recurrenceRepository;
-        this.transactionRepository = transactionRepository;
         this.userRepository = userRepository;
+        this.accountRepository = accountRepository;
+        this.transactionRepository = transactionRepository;
+        this.recurrenceRepository = recurrenceRepository;
         this.notificationService = notificationService;
     }
 
