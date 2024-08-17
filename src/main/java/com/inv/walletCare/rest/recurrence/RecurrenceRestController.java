@@ -1,5 +1,6 @@
 package com.inv.walletCare.rest.recurrence;
 
+import com.inv.walletCare.logic.entity.account.AccountRepository;
 import com.inv.walletCare.logic.entity.recurrence.Recurrence;
 import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
 import com.inv.walletCare.logic.entity.user.User;
@@ -18,12 +19,18 @@ public class RecurrenceRestController {
     @Autowired
     private RecurrenceRepository recurrenceRepository;
 
-    @GetMapping
-    public List<Recurrence> getRecurrences() {
+    @Autowired
+    private AccountRepository accountRepository;
+
+    @GetMapping("/{id}")
+    public List<Recurrence> getRecurrences(@PathVariable Long id) throws Exception {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
-
-        return recurrenceRepository.findAllByOwner(currentUser.getId());
+        var account = accountRepository.findById(id);
+        if(account.isEmpty()){
+            throw new Exception("La cuenta indicada no existe, favor intenta con otra.");
+        }
+        return recurrenceRepository.findAllByOwnerAndAccountId(currentUser.getId(), account.get().getId());
     }
 
     @DeleteMapping("/{id}")

@@ -1,5 +1,6 @@
 package com.inv.walletCare.rest.user;
 
+import com.inv.walletCare.logic.entity.helpers.configuration.AppParametersRepository;
 import com.inv.walletCare.logic.entity.response.Response;
 import com.inv.walletCare.logic.entity.passwordReset.ResetPasswordRequest;
 import com.inv.walletCare.logic.entity.email.Email;
@@ -9,6 +10,9 @@ import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.entity.user.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -23,12 +27,20 @@ import java.util.Map;
 public class PasswordController {
     @Autowired
     private OTPService otpService;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
     private EmailSenderService emailSenderService;
 
     @Autowired
     private UserRepository userRepository;
+    String otp;
+
+    @Autowired
+    private AppParametersRepository appParametersRepository;
+
+    private String frontURL;
 
     /**
      * Generates an OTP and sends it to the user's email.
@@ -39,8 +51,9 @@ public class PasswordController {
      */
     @PostMapping("/forgot")
     public String forgotPassword(@RequestBody String email) throws Exception {
-        String otp = otpService.generateOTP(email);
-        String resetPasswordLink = "http://localhost:4200/forgot-password-reset?email=" + email; // URL con el email como parámetro
+        otp = otpService.generateOTP(email);
+        this.frontURL = appParametersRepository.findByParamKey("FrontUrl").get().getParamValue();
+        String resetPasswordLink = frontURL + "/forgot-password-reset?email=" + email; // URL con el email como parámetro
 
         Email emailDetails = new Email();
         emailDetails.setTo(email);
@@ -54,7 +67,23 @@ public class PasswordController {
 
         return "Código OTP enviado";
     }
+    @PostMapping("/change-password-otp")
+    public String requestChangePassword() throws Exception {
+        Authentication authentication= SecurityContextHolder.getContext().getAuthentication();
+        User currentUser=(User) authentication.getPrincipal();
+        otp = otpService.generateOTP(currentUser.getEmail());
 
+        Email emailDetails = new Email();
+        emailDetails.setTo(currentUser.getEmail());
+        emailDetails.setSubject("Your OTP Code");
+        Map<String, String> params = new HashMap<>();
+        params.put("name", currentUser.getEmail());
+        params.put("otp", otp);
+
+        emailSenderService.sendEmail(emailDetails, "ChangePassword", params);
+
+        return "Código OTP enviado";
+    }
     /**
      * Validates the OTP entered by the user.
      *
@@ -85,5 +114,13 @@ public class PasswordController {
         } else {
             throw new IllegalArgumentException("OTP inválido");
         }
+    }
+    @PostMapping("/change-password")
+    public ResponseEntity<Response> changePassword(@RequestBody ResetPasswordRequest resetPasswordRequest) throws Exception {
+        Authentication authentication=SecurityContextHolder.getContext().getAuthentication();
+        User currentUser=(User) authentication.getPrincipal();
+        currentUser.setPassword(passwordEncoder.encode(resetPasswordRequest.getNewPassword()));
+        userRepository.save(currentUser);
+        return ResponseEntity.ok(new Response("Usuario actualizado!"));
     }
 }

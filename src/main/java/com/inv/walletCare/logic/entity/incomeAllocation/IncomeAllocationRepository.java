@@ -20,4 +20,7 @@ public interface IncomeAllocationRepository extends JpaRepository<IncomeAllocati
             i.isDeleted = false
             """)
     Optional<List<IncomeAllocation>> findAllByOwnerAndFrequency(Long userId, FrequencyTypeEnum frequency);
+
+    @Query("SELECT i FROM IncomeAllocation i WHERE i.income.id = ?1 AND i.isDeleted = false")
+    Optional<List<Optional<IncomeAllocation>>> findAllByAccountId(Long incomeid);
 }
