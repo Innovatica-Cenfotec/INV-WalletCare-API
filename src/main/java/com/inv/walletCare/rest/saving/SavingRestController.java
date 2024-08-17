@@ -122,7 +122,7 @@ public class SavingRestController {
         Saving newSaving = new Saving();
         newSaving.setOwner(currentUser);
         newSaving.setName(saving.getName());
-        newSaving.setAmount(new BigDecimal(0));
+        newSaving.setAmount(saving.getAmount());
         newSaving.setDescription(saving.getDescription());
         newSaving.setType(saving.getType());
         newSaving.setAccount(account);
