@@ -1,11 +1,11 @@
 package com.inv.walletCare.logic.entity.email;
 
+import com.inv.walletCare.logic.entity.helpers.configuration.AppParametersRepository;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import org.apache.commons.text.StringSubstitutor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
@@ -27,17 +27,18 @@ public class EmailSenderService {
     @Autowired
     private JavaMailSender mailSender;
 
+    @Autowired
+    private AppParametersRepository appParametersRepository;
 
     /**
      * Address used for sending e-mails
      */
-    @Value("${spring.mail.username}")
     private String toBaseEmail;
 
     /**
      * Path to the HTML Templates
      */
-    private final String PATH_TO_TEMPLATES = "src/main/resources/templates/";
+    private String pathToTemplates;
 
     /**
      * This method gets ready the email to be sent
@@ -49,6 +50,9 @@ public class EmailSenderService {
      *  2. The email can't be sent
      */
     public void sendEmail(Email email, String templateName, Map<String, String> params) throws Exception {
+        this.toBaseEmail = appParametersRepository.findByParamKey("BaseEmail").get().getParamValue();
+        this.pathToTemplates = appParametersRepository.findByParamKey("TemplatesRoute").get().getParamValue();
+
         var template = getTemplate(templateName);
         String emailBody = tokenReplacement(template, params);
         email.setBody(emailBody);
@@ -87,7 +91,7 @@ public class EmailSenderService {
      */
     private String getTemplate(String templateName) throws Exception {
 
-        String templatePath = PATH_TO_TEMPLATES+templateName+".html";
+        String templatePath = pathToTemplates +templateName+".html";
         File file = new File(templatePath);
         if(!file.exists()){
             throw new FileNotFoundException("Email Template could not be found.");
