@@ -11,7 +11,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -55,7 +58,7 @@ public class ExchangeService {
         return codes;
     }
 
-    public CurrencyExchangeDTO getExchangeRate (CurrencyExchangeDTO currencyExchange) throws IOException {
+    public CurrencyExchangeDTO getExchangeRate(CurrencyExchangeDTO currencyExchange) throws IOException {
         var exchangeRate = getExchangeRate(currencyExchange.getCurrencyFrom(), currencyExchange.getCurrencyTo());
         currencyExchange.setExchangeValue(exchangeRate * currencyExchange.getAmount());
         return currencyExchange;
@@ -88,6 +91,54 @@ public class ExchangeService {
         var exchange = data.getJSONObject("conversion_rates").getFloat(currencyTo);
         return exchange;
 
+    }
 
+    public List<List<Integer>> getMonthlyExchangeRates(CurrencyExchangeDTO currencyExchange) throws IOException {
+        this.API_KEY = this.appParametersRepository.findByParamKey("ExchangeApiKey").get().getParamValue();
+        this.API_URL = this.appParametersRepository.findByParamKey("ExchangeUrl").get().getParamValue() + API_KEY;
+
+        Date date = new Date();
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        int month = cal.get(Calendar.MONTH)+1;
+
+        String url = API_URL + "/history/" + currencyExchange.getCurrencyFrom() + "/"+LocalDate.now().getYear() + "/" + month;
+
+        var days = new ArrayList<Integer>();
+        var exchangeRate = new ArrayList<Integer>();
+        var monthlyRates = new ArrayList<List<Integer>>();
+        for (int day = 1; day < LocalDate.now().getDayOfMonth(); day++) {
+            var test = url + "/" + day;
+            var conn = (HttpURLConnection) new URL(url + "/" + day).openConnection();
+            conn.setRequestMethod("GET");
+            conn.connect();
+
+            int responseCode = conn.getResponseCode();
+            if (responseCode != 200) {
+                throw new RuntimeException("HttpResponseCode: " + responseCode);
+            }
+            var in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String inputLine;
+            StringBuilder content = new StringBuilder();
+            while ((inputLine = in.readLine()) != null) {
+                content.append(inputLine);
+            }
+            in.close();
+            conn.disconnect();
+
+
+            JSONObject data = new JSONObject(content.toString());
+            var exchange = data.getJSONObject("conversion_rates").getFloat(currencyExchange.getCurrencyTo());
+
+            days.add(day);
+            exchangeRate.add((int)exchange);
+        }
+        days.add(LocalDate.now().getDayOfMonth());
+        exchangeRate.add((int)getExchangeRate(currencyExchange.getCurrencyFrom(), currencyExchange.getCurrencyTo()));
+
+        monthlyRates.add(days);
+        monthlyRates.add(exchangeRate);
+
+        return monthlyRates;
     }
 }

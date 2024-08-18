@@ -16,4 +16,5 @@ public interface SavingRepository extends JpaRepository<Saving, Long> {
 
     @Query("SELECT s FROM Saving s WHERE s.name = ?1 AND s.owner.id = ?2 AND s.isDeleted = false")
     Optional<Saving> findByNameAndOwnerId(String name, Long ownerId);
+
 }

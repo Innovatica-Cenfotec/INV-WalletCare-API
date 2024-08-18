@@ -54,4 +54,9 @@ public class ToolsRestController {
     public CurrencyExchangeDTO curencyExchange(@RequestBody CurrencyExchangeDTO exchangeInformation) throws IOException {
          return exchangeService.getExchangeRate(exchangeInformation);
     }
+
+    @PostMapping("/exchange-monthly")
+    public List<List<Integer>> monthlyExchangeRates(@RequestBody CurrencyExchangeDTO exchangeInformation) throws IOException {
+        return exchangeService.getMonthlyExchangeRates(exchangeInformation);
+    }
 }
