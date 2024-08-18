@@ -249,9 +249,7 @@ public class ExpenseRestController {
             tran.setType(TransactionTypeEnum.EXPENSE);
             tran.setUpdatedAt(null);
             tran.setAccount(expense.getAccount());
-
             tran.setExpense(expenseCreated.get());
-
             tran.setIncomeAllocation(null);
             tran.setOwner(user);
             tran.setSavingAllocation(null);

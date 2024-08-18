@@ -170,10 +170,6 @@ public class GoalService {
         GoalExtrator extractor = AiServices.create(GoalExtrator.class, model);
         var goal = extractor.extractGoal(data, current_date);
 
-
-
-
-
         Optional<Account> account = accountRepository.findByIdAndOwnerId(goal.getRefIdAccount(), user.getId());
         if (account.isEmpty()) {
             // No account found for the given ID, continue with the next goal

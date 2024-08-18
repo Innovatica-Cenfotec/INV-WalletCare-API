@@ -97,6 +97,9 @@ public class Saving {
     @Min(groups = {OnCreate.class, OnUpdate.class }, value = 0, message = "El monto del ahorro debe ser mayor a 0")
     private BigDecimal amount;
 
+    @Column(name = "balance", nullable = false)
+    private BigDecimal balance;
+
     public @NegativeOrZero(groups = OnCreate.class, message = "El ID es requerido para actualizar un ahorro") Long getId() {
         return id;
     }
@@ -213,5 +216,13 @@ public class Saving {
   
     public void setAmount(@Min(groups = {OnCreate.class, OnUpdate.class}, value = 0, message = "El monto del ahorro debe ser mayor a 0") BigDecimal amount) {
         this.amount = amount;
+    }
+
+    public BigDecimal getBalance() {
+        return balance;
+    }
+
+    public void setBalance(BigDecimal balance) {
+        this.balance = balance;
     }
 }

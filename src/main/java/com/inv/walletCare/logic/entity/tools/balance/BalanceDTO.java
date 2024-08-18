@@ -25,7 +25,6 @@ public class BalanceDTO {
     /**
      * The balance of recurrent incomes.
      */
-    private BigDecimal monthlyIncomeBalance;
     private BigDecimal recurrentIncomesBalance;
 
     public BalanceDTO() {}
