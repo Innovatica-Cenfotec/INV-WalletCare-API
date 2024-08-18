@@ -44,6 +44,7 @@ public class UserRestController {
     @PostMapping
     public User addUser(@RequestBody User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setEnabled(true);
         return userRepository.save(user);
     }
 
@@ -72,7 +73,7 @@ public class UserRestController {
     /**
      * Updates an existing user.
      *
-     * @param id the ID of the user to update.
+     * @param id   the ID of the user to update.
      * @param user the new user data.
      * @return the updated user.
      */
@@ -83,6 +84,7 @@ public class UserRestController {
                     existingUser.setName(user.getName());
                     existingUser.setLastname(user.getLastname());
                     existingUser.setEmail(user.getEmail());
+                    existingUser.setEnabled(user.isEnabled());
                     return userRepository.save(existingUser);
                 })
                 .orElseGet(() -> {
@@ -116,7 +118,7 @@ public class UserRestController {
     /**
      * Updates the authenticated user's information.
      *
-     * @param id the ID of the user to update.
+     * @param id   the ID of the user to update.
      * @param user the new user data.
      * @return the updated user.
      */
