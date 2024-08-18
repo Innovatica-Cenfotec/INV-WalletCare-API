@@ -16,6 +16,9 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     @Query("SELECT i FROM Expense i WHERE i.owner.id= ?1 AND i.isDeleted = false")
     List<Expense> findAllByUserId(Long userId);
 
+    @Query("SELECT i FROM Expense i WHERE i.owner.id= ?1 AND i.isDeleted = false AND i.isTemplate = false")
+    List<Expense> findAllNotTemplatesByUserId(Long userId);
+
     @Query("SELECT i FROM Expense i WHERE i.owner.id= ?1 AND i.isDeleted = false AND i.isTemplate = true")
     List<Expense> findAllTemplatesByUserId(Long userId);
 
