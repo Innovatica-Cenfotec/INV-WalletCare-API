@@ -25,10 +25,10 @@ public class BalanceDTO {
     /**
      * The balance of recurrent incomes.
      */
+    private BigDecimal monthlyIncomeBalance;
     private BigDecimal recurrentIncomesBalance;
 
-    public BalanceDTO() {
-    }
+    public BalanceDTO() {}
 
     public BalanceDTO(BigDecimal monthlyExpenseBalance, BigDecimal recurrentExpensesBalance, BigDecimal monthlyIncomeBalance, BigDecimal recurrentIncomesBalance) {
         this.monthlyExpenseBalance = monthlyExpenseBalance;

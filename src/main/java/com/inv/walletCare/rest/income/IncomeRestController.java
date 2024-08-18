@@ -10,6 +10,8 @@ import com.inv.walletCare.logic.entity.incomeAllocation.IncomeAllocation;
 import com.inv.walletCare.logic.entity.incomeAllocation.IncomeAllocationRepository;
 import com.inv.walletCare.logic.entity.recurrence.Recurrence;
 import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
+import com.inv.walletCare.logic.entity.report.BarchartDTO;
+import com.inv.walletCare.logic.entity.report.ReportService;
 import com.inv.walletCare.logic.entity.tax.Tax;
 import com.inv.walletCare.logic.entity.tax.TaxRepository;
 import com.inv.walletCare.logic.entity.transaction.Transaction;
@@ -19,7 +21,6 @@ import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.exceptions.FieldValidationException;
 import com.inv.walletCare.logic.validation.OnCreate;
 import com.inv.walletCare.logic.validation.OnUpdate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
@@ -34,29 +35,41 @@ import java.util.Optional;
 @RequestMapping("/incomes")
 public class IncomeRestController {
 
-    @Autowired
-    private IncomeRepository incomeRepository;
+    private final IncomeRepository incomeRepository;
 
-    @Autowired
-    private AccountRepository accountRepository;
+    private final AccountRepository accountRepository;
 
-    @Autowired
-    private TaxRepository taxRepository;
+    private final TaxRepository taxRepository;
 
-    @Autowired
-    private TransactionService transactionService;
+    private final TransactionService transactionService;
 
-    @Autowired
-    private IncomeAllocationRepository incomeAllocationRepository;
+    private final IncomeAllocationRepository incomeAllocationRepository;
 
-    @Autowired
-    private RecurrenceRepository recurrenceRepository;
+    private final RecurrenceRepository recurrenceRepository;
+
+    private final ReportService reportService;
+
+    public IncomeRestController(IncomeRepository incomeRepository,
+                                AccountRepository accountRepository,
+                                TaxRepository taxRepository,
+                                TransactionService transactionService,
+                                IncomeAllocationRepository incomeAllocationRepository,
+                                RecurrenceRepository recurrenceRepository,
+                                ReportService reportService) {
+        this.incomeRepository = incomeRepository;
+        this.accountRepository = accountRepository;
+        this.taxRepository = taxRepository;
+        this.transactionService = transactionService;
+        this.incomeAllocationRepository = incomeAllocationRepository;
+        this.recurrenceRepository = recurrenceRepository;
+        this.reportService = reportService;
+    }
 
     @GetMapping
     public List<Income> getIncomes() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
-        return incomeRepository.findAllByUserId(currentUser.getId());
+        return incomeRepository.findAllByOwnerId(currentUser.getId());
     }
 
     @PostMapping
@@ -276,5 +289,16 @@ public class IncomeRestController {
             recurrence.setDeleted(false);
             recurrenceRepository.save(recurrence);
         }
+    }
+
+    /**
+     * Get a report of incomes sort by month and category created by logged user.
+     * @return List of BarchartDTO with the report of income.
+     */
+    @GetMapping("/report/by-category/{year}")
+    public List<BarchartDTO> getAnualAmountByCategory(@PathVariable int year) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+        return reportService.getYearlyIncomeByCategoryReport(year, user.getId());
     }
 }

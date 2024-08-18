@@ -1,59 +1,64 @@
-package com.inv.walletCare.logic.entity.goal;
+package com.inv.walletCare.logic.entity.tip;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.account.AccountRepository;
+import com.inv.walletCare.logic.entity.notification.NotificationDTO;
+import com.inv.walletCare.logic.entity.notification.NotificationService;
+import com.inv.walletCare.logic.entity.notification.NotificationType;
 import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
 import com.inv.walletCare.logic.entity.rol.RoleEnum;
 import com.inv.walletCare.logic.entity.transaction.TransactionRepository;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.entity.user.UserRepository;
+import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.vertexai.VertexAiGeminiChatModel;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.vertexai.VertexAiGeminiChatModel;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.google.gson.Gson;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Date;
-import java.util.Optional;
 
 @Service
-public class GoalService {
-    @Autowired
-    private AccountRepository accountRepository;
+public class TipService {
+    private final UserRepository userRepository;
+    private final AccountRepository accountRepository;
+    private final TransactionRepository transactionRepository;
+    private final RecurrenceRepository recurrenceRepository;
+    private final NotificationService notificationService;
 
-    @Autowired
-    private RecurrenceRepository recurrenceRepository;
+    public TipService(UserRepository userRepository, AccountRepository accountRepository,
+                      TransactionRepository transactionRepository, RecurrenceRepository recurrenceRepository,
+                      NotificationService notificationService) {
+        this.userRepository = userRepository;
+        this.accountRepository = accountRepository;
+        this.transactionRepository = transactionRepository;
+        this.recurrenceRepository = recurrenceRepository;
+        this.notificationService = notificationService;
+    }
 
-    @Autowired
-    private TransactionRepository transactionRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private GoalRepository goalRepository;
-
-    interface GoalExtrator {
-        @UserMessage(fromResource = "/prompts/create_goal.txt")
-        GoalProposal extractGoal(@V("data_user") String data, @V("current_date") String data_user);
+    interface TipExtractor {
+        @UserMessage(fromResource = "/prompts/create_tip.txt")
+        TipProposal extractTip(@V("data_user") String data, @V("current_date") String currentDate);
     }
 
     /**
-     * Run the service to create goals for all users
+     * Run the service to send a notification with a new tip to all registered users.
      */
-    public void runService() {
+    public void runService() throws Exception {
         var users = userRepository.findAll();
         for (var user : users.stream().filter(u -> u.getRole().getName() == RoleEnum.USER).toList()) {
-            Goal goal = createGoal(user);
-            if (goal != null) {
-                goalRepository.save(goal);
+            TipProposal tip = createTip(user);
+            if (tip != null) {
+                NotificationDTO notification = new NotificationDTO();
+                notification.setReceiverEmail(user.getEmail());
+                notification.setType(NotificationType.TIP);
+                notification.setTitle(tip.getName());
+                notification.setMessage(tip.getDescription());
+                notificationService.sendNotificationByUserEmail(notification);
             }
         }
     }
@@ -67,7 +72,6 @@ public class GoalService {
         var recurrences = recurrenceRepository.findAllByOwner(user.getId()).get();
         var accounts = accountRepository.findAllByOwnerId(user.getId());
         var transactions = transactionRepository.findAllbyOwner(user.getId());
-        var goals = goalRepository.findAllByOwnerId(user.getId());
 
         // Construct JSON object
         JsonObject jsonObject = new JsonObject();
@@ -125,37 +129,22 @@ public class GoalService {
 
             accountObject.add("recurring_incomes", recurringIncomesArray);
             accountObject.add("recurring_expenses", recurringExpensesArray);
-            //accountObject.add("savings", savingsArray);
+            accountObject.add("savings", savingsArray);
             accountObject.add("transactions", transactionsArray);
             accountsArray.add(accountObject);
         }
 
-        // Add Goals array
-        JsonArray goalsArray = new JsonArray();
-        for (var goal : goals) {
-            JsonObject goalObject = new JsonObject();
-            goalObject.addProperty("name", goal.getName());
-            goalObject.addProperty("description", goal.getDescription());
-            goalObject.addProperty("recommendation", goal.getRecommendation());
-            goalObject.addProperty("type", goal.getType().name());
-            goalObject.addProperty("target_amount", goal.getTargetAmount());
-            goalObject.addProperty("initialAmount", goal.getInitialAmount());
-
-            goalsArray.add(goalObject);
-        }
-
         jsonObject.add("accounts", accountsArray);
-        jsonObject.add("goals", goalsArray);
-
         return new Gson().toJson(jsonObject);
     }
 
     /**
-     * Create a goal for the given user
-     * @param user The user to create the goal for
-     * @return The created goal
+     * Create a tip for the given user
+     * @param user The user to create the tip for
+     * @return The created tip
      */
-    public Goal createGoal(User user) {
+    public TipProposal createTip(User user) {
+        // AI config
         ChatLanguageModel model = VertexAiGeminiChatModel.builder()
                 .project(System.getenv("PROJECT_ID"))
                 .location(System.getenv("LOCATION"))
@@ -167,39 +156,13 @@ public class GoalService {
         String current_date = Date.from(Instant.now()).toString();
         String data = BuilderJson(user);
 
-        GoalExtrator extractor = AiServices.create(GoalExtrator.class, model);
-        var goal = extractor.extractGoal(data, current_date);
+        TipExtractor extractor = AiServices.create(TipExtractor.class, model);
+        var tip = extractor.extractTip(data, current_date);
 
+        TipProposal newTip = new TipProposal();
+        newTip.setName(tip.getName());
+        newTip.setDescription(tip.getDescription());
 
-
-
-
-        Optional<Account> account = accountRepository.findByIdAndOwnerId(goal.getRefIdAccount(), user.getId());
-        if (account.isEmpty()) {
-            // No account found for the given ID, continue with the next goal
-            return null;
-        }
-
-        Goal newGoal = new Goal();
-        newGoal.setName(goal.getName());
-        newGoal.setDescription(goal.getDescription());
-        newGoal.setRecommendation(goal.getRecommendation());
-        newGoal.setType(goal.getType());
-        newGoal.setTargetAmount(goal.getTargetAmount());
-        newGoal.setTargetDate(goal.getTargetDate());
-        newGoal.setOwner(user);
-        newGoal.setCreatedAt(new Date());
-        newGoal.setStatus(GoalStatusEnum.GOAL_PENDING);
-        newGoal.setDeleted(false);
-        newGoal.setAccount(account.get());
-
-        if (goal.getType() == GoalTypeEnum.EXPENSE_REDUCTION) {
-            newGoal.setInitialAmount(account.get().getBalance());
-        }
-        else {
-            newGoal.setInitialAmount(BigDecimal.ZERO);
-        }
-
-        return newGoal;
+        return newTip;
     }
 }
