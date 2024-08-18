@@ -1,12 +1,31 @@
-package com.inv.walletCare.logic.entity.tools;
+package com.inv.walletCare.logic.entity.tools.balance;
 
 import java.math.BigDecimal;
 
+/**
+ * This class is a DTO with de balances calculations
+ */
 public class BalanceDTO {
+
+    /**
+     * The balance of monthly expenses.
+     */
     private BigDecimal monthlyExpenseBalance;
+
+    /**
+     * The balance of recurrent expenses.
+     */
     private BigDecimal recurrentExpensesBalance;
-    private  BigDecimal monthlyIncomeBalance;
-    private  BigDecimal recurrentIncomesBalance;
+
+    /**
+     * The balance of monthly income.
+     */
+    private BigDecimal monthlyIncomeBalance;
+
+    /**
+     * The balance of recurrent incomes.
+     */
+    private BigDecimal recurrentIncomesBalance;
 
     public BalanceDTO() {
     }

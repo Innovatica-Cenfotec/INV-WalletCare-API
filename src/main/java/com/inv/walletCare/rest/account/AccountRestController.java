@@ -9,6 +9,7 @@ import com.inv.walletCare.logic.entity.accountUser.AccountUserRespository;
 import com.inv.walletCare.logic.entity.email.Email;
 import com.inv.walletCare.logic.entity.email.EmailSenderService;
 import com.inv.walletCare.logic.entity.expense.ExpenseService;
+import com.inv.walletCare.logic.entity.helpers.configuration.AppParametersRepository;
 import com.inv.walletCare.logic.entity.incomeAllocation.IncomeAllocationService;
 import com.inv.walletCare.logic.entity.transaction.TransactionService;
 import com.inv.walletCare.logic.entity.user.User;
@@ -51,7 +52,10 @@ public class AccountRestController {
     private IncomeAllocationService incomeAllocationService;
     @Autowired
     private ExpenseService expenseService;
+    @Autowired
+    private AppParametersRepository appParametersRepository;
 
+    private String frontURL;
 
     /**
      * Retrieves a list of {@link Account} objects associated with the currently authenticated user.
@@ -318,6 +322,8 @@ public class AccountRestController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
         Optional<User> invitedUser = userRepository.findByEmail(accountUser.getUser().getEmail());
+        this.frontURL = appParametersRepository.findByParamKey("FrontUrl").get().getParamValue();
+
         if (invitedUser.isEmpty()) {
             throw new Exception("El usuario que ha intentado invitar no existe");
         }
@@ -369,7 +375,7 @@ public class AccountRestController {
         params.put("invitedUser", accountUser.getUser().getEmail());
         params.put("accountName", baseAccount.get().getName());
         params.put("invitationHandlerLink",
-                "http://localhost:4200/invitation" +
+                frontURL + "/invitation" +
                         "?host=" + baseAccount.get().getOwner().getEmail() +
                         "&accountName=" + baseAccount.get().getName() +
                         "&accountId=" + baseAccount.get().getId() +
@@ -468,7 +474,7 @@ public class AccountRestController {
         //Transfer Incomes
         incomeAllocationService.transferIncomes(accountUser.getUser().getId(), account.get().getId());
 
-        //Tranfer Expenses
+        //Transfer Expenses
         expenseService.transferExpenses(accountUser.getUser().getId(), account.get().getId());
 
         //Transfer Transactions

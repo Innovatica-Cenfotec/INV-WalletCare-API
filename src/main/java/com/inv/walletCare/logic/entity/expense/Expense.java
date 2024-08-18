@@ -7,7 +7,7 @@ import com.inv.walletCare.logic.entity.IncomeExpenceType;
 import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.tax.Tax;
 import com.inv.walletCare.logic.entity.user.User;
-import com.inv.walletCare.logic.expenseCategory.ExpenseCategory;
+import com.inv.walletCare.logic.entity.expenseCategory.ExpenseCategory;
 import com.inv.walletCare.logic.validation.OnCreate;
 import com.inv.walletCare.logic.validation.OnUpdate;
 import jakarta.persistence.*;
