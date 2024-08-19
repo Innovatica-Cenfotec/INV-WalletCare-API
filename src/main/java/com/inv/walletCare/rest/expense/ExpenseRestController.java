@@ -8,6 +8,7 @@ import com.inv.walletCare.logic.entity.accountUser.AccountUserRespository;
 import com.inv.walletCare.logic.entity.email.EmailSenderService;
 import com.inv.walletCare.logic.entity.expense.Expense;
 import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
+import com.inv.walletCare.logic.entity.expenseCategory.ExpenseCategoryRepository;
 import com.inv.walletCare.logic.entity.helpers.Helper;
 import com.inv.walletCare.logic.entity.recurrence.Recurrence;
 import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
@@ -51,6 +52,7 @@ public class ExpenseRestController {
     private final EmailSenderService emailSenderService;
     private final AccountUserRespository accountUserRespository;
     private final ReportService reportService;
+    private final ExpenseCategoryRepository expenseCategoryRepository;
 
     public ExpenseRestController(ExpenseRepository expenseRepository,
                                  AccountRepository accountRepository,
@@ -59,7 +61,8 @@ public class ExpenseRestController {
                                  RecurrenceRepository recurrenceRepository,
                                  EmailSenderService emailSenderService,
                                  AccountUserRespository accountUserRespository,
-                                 ReportService reportService) {
+                                 ReportService reportService,
+                                 ExpenseCategoryRepository expenseCategoryRepository) {
         this.expenseRepository = expenseRepository;
         this.accountRepository = accountRepository;
         this.taxRepository = taxRepository;
@@ -68,6 +71,7 @@ public class ExpenseRestController {
         this.emailSenderService = emailSenderService;
         this.accountUserRespository = accountUserRespository;
         this.reportService = reportService;
+        this.expenseCategoryRepository = expenseCategoryRepository;
     }
 
     /**
@@ -123,6 +127,17 @@ public class ExpenseRestController {
         newExpense.setUpdatedAt(new Date());
         newExpense.setDeleted(false);
         newExpense.setType(expense.getType());
+        // If it has a category, validate and add it.
+        if (expense.getExpenseCategory() != null) {
+            var expenseCategory = expenseCategoryRepository.findByIdAndOwnerId(expense.getExpenseCategory().getId(), user.getId());
+            if (expenseCategory.isEmpty()) {
+                throw new IllegalArgumentException("Categoría de gasto no encontrada.");
+            }
+
+            // Set the category
+            newExpense.setExpenseCategory(expenseCategory.get());
+        }
+
         var expenseCreated = expenseRepository.save(newExpense);
 
         if (expense.isAddTransaction()) {
@@ -292,6 +307,17 @@ public class ExpenseRestController {
         
         if (existingExpense.get().getAccount() != null) {
             sendEmailToAllMembers(existingExpense.get().getAccount().getId());
+        }
+
+        // If it has a category, validate and add it.
+        if (expense.getExpenseCategory() != null) {
+            var expenseCategory = expenseCategoryRepository.findByIdAndOwnerId(expense.getExpenseCategory().getId(), currentUser.getId());
+            if (expenseCategory.isEmpty()) {
+                throw new IllegalArgumentException("Categoría de gasto no encontrada.");
+            }
+
+            // update the category
+            existingExpense.get().setExpenseCategory(expenseCategory.get());
         }
 
         // Expense details
