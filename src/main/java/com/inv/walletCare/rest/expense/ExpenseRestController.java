@@ -14,6 +14,8 @@ import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
 import com.inv.walletCare.logic.entity.account.AccountTypeEnum;
 import com.inv.walletCare.logic.entity.accountUser.AccountUser;
 import com.inv.walletCare.logic.entity.email.Email;
+import com.inv.walletCare.logic.entity.report.BarchartDTO;
+import com.inv.walletCare.logic.entity.report.ReportService;
 import com.inv.walletCare.logic.entity.tax.Tax;
 import com.inv.walletCare.logic.entity.tax.TaxRepository;
 import com.inv.walletCare.logic.entity.transaction.Transaction;
@@ -48,6 +50,7 @@ public class ExpenseRestController {
     private final RecurrenceRepository recurrenceRepository;
     private final EmailSenderService emailSenderService;
     private final AccountUserRespository accountUserRespository;
+    private final ReportService reportService;
 
     public ExpenseRestController(ExpenseRepository expenseRepository,
                                  AccountRepository accountRepository,
@@ -55,7 +58,8 @@ public class ExpenseRestController {
                                  TransactionService transactionService,
                                  RecurrenceRepository recurrenceRepository,
                                  EmailSenderService emailSenderService,
-                                 AccountUserRespository accountUserRespository) {
+                                 AccountUserRespository accountUserRespository,
+                                 ReportService reportService) {
         this.expenseRepository = expenseRepository;
         this.accountRepository = accountRepository;
         this.taxRepository = taxRepository;
@@ -63,6 +67,7 @@ public class ExpenseRestController {
         this.recurrenceRepository = recurrenceRepository;
         this.emailSenderService = emailSenderService;
         this.accountUserRespository = accountUserRespository;
+        this.reportService = reportService;
     }
 
     /**
@@ -244,9 +249,7 @@ public class ExpenseRestController {
             tran.setType(TransactionTypeEnum.EXPENSE);
             tran.setUpdatedAt(null);
             tran.setAccount(expense.getAccount());
-
             tran.setExpense(expenseCreated.get());
-
             tran.setIncomeAllocation(null);
             tran.setOwner(user);
             tran.setSavingAllocation(null);
@@ -377,5 +380,16 @@ public class ExpenseRestController {
                 CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
             }
         }
+    }
+
+    /**
+     * Get a report of expenses sort by month and category created by logged user.
+     * @return List of BarchartDTO with the report of expense.
+     */
+    @GetMapping("/report/by-category/{year}")
+    public List<BarchartDTO> getAnualAmountByCategory(@PathVariable int year) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+        return reportService.getYearlyExpenseByCategoryReport(year, user.getId());
     }
 }

@@ -106,10 +106,10 @@ public class BalanceService {
         }
 
         for (var exp : reccurrentTransactions.get()) {
-            if (exp.get().getExpense() != null) {
-                recurrentExpense = recurrentExpense + exp.get().getExpense().getAmount().doubleValue();
-            } else if (exp.get().getIncome() != null) {
-                recurrentIncome = recurrentIncome + exp.get().getIncome().getAmount().doubleValue();
+            if (exp.getExpense() != null) {
+                recurrentExpense = recurrentExpense + exp.getExpense().getAmount().doubleValue();
+            } else if (exp.getIncome() != null) {
+                recurrentIncome = recurrentIncome + exp.getIncome().getAmount().doubleValue();
             }
         }
 

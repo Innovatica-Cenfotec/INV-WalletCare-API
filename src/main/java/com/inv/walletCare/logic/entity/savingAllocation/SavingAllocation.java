@@ -59,10 +59,10 @@ public class SavingAllocation {
      */
     @Column(name = "percentage", nullable = false)
     @NotNull(groups = {OnCreate.class, OnUpdate.class},
-            message = "El porcentaje es requerido para realizar la asignación")
-    @Size(min = 0, max = 1, groups = {OnCreate.class, OnUpdate.class},
-            message = "El porcentaje debe tener un valor entre 0 y 1")
-    private BigDecimal percentage;
+            message = "El monto es requerido para realizar la asignación")
+    @Size(min = 1, groups = {OnCreate.class, OnUpdate.class},
+            message = "El monto debe tener un valor mayor o igual a 1")
+    private BigDecimal amount;
 
     /**
      * Date and time when the saving allocation was created.
@@ -127,15 +127,15 @@ public class SavingAllocation {
     }
 
     public @NotNull(groups = {OnCreate.class, OnUpdate.class},
-            message = "El porcentaje es requerido para realizar la asignación") @Size(min = 0, max = 1, groups = {OnCreate.class, OnUpdate.class},
-            message = "El porcentaje debe tener un valor entre 0 y 1") BigDecimal getPercentage() {
-        return percentage;
+            message = "El monto es requerido para realizar la asignación") @Size(min = 1, groups = {OnCreate.class, OnUpdate.class},
+            message = "El monto debe tener un valor mayor o igual a 1") BigDecimal getAmount() {
+        return amount;
     }
 
-    public void setPercentage(@NotNull(groups = {OnCreate.class, OnUpdate.class},
-            message = "El porcentaje es requerido para realizar la asignación") @Size(min = 0, max = 1, groups = {OnCreate.class, OnUpdate.class},
-            message = "El porcentaje debe tener un valor entre 0 y 1") BigDecimal percentage) {
-        this.percentage = percentage;
+    public void setAmount(@NotNull(groups = {OnCreate.class, OnUpdate.class},
+            message = "El monto es requerido para realizar la asignación") @Size(min = 1, groups = {OnCreate.class, OnUpdate.class},
+            message = "El monto debe tener un valor mayor o igual a 1") BigDecimal percentage) {
+        this.amount = percentage;
     }
 
     public Date getCreatedAt() {
