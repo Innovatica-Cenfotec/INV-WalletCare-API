@@ -74,7 +74,6 @@ public class AuthRestController {
         }
 
         User authenticatedUser = authenticationService.authenticate(user);
-
         LoginResponse loginResponse = new LoginResponse();
         loginResponse.setToken(jwtService.generateToken(authenticatedUser));
         loginResponse.setExpiresIn(jwtService.getExpirationTime());
@@ -134,6 +133,7 @@ public class AuthRestController {
         user.setCreatedAt(new Date());
         user.setUpdatedAt(new Date());
         user.setRole(optionalRole.get());
+        user.setEnabled(true);
         userRepository.save(user);
 
         // Create a new account for the user

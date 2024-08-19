@@ -3,6 +3,7 @@ package com.inv.walletCare.logic.entity.recurrence;
 import com.inv.walletCare.logic.entity.FrequencyTypeEnum;
 import com.inv.walletCare.logic.entity.goal.Goal;
 import com.inv.walletCare.logic.entity.goal.GoalService;
+import com.inv.walletCare.logic.entity.tip.TipService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -27,6 +28,8 @@ public class SchedulerConfig {
     @Autowired
     private GoalService goalService;
 
+    @Autowired
+    private TipService tipService;
 
     /**
      * Runs a task daily at midnight.
@@ -82,7 +85,8 @@ public class SchedulerConfig {
      * Runs a task at the end of the month at 23:59:59
      */
     @Scheduled(cron = "59 59 23 L * ?")
-    public void runEveryFiveMinutes() {
+    public void runEveryFiveMinutes() throws Exception {
         goalService.runService();
+        tipService.runService();
     }
 }

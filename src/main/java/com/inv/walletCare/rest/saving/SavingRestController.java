@@ -215,7 +215,7 @@ public class SavingRestController {
             savingAllocation.setAccount(account.get());
             savingAllocation.setSaving(existingSaving.get());
             savingAllocation.setOwner(currentUser);
-            savingAllocation.setAmount(Helper.reverse(existingSaving.get().getAmount()));
+            savingAllocation.setAmount(existingSaving.get().getAmount());
             savingAllocation.setCreatedAt(new Date());
             savingAllocation.setUpdatedAt(new Date());
             savingAllocation.setDeleted(false);
@@ -223,7 +223,7 @@ public class SavingRestController {
 
             // Create and save the transaction
             var transaction = new Transaction();
-            transaction.setAmount(existingSaving.get().getAmount());
+            transaction.setAmount(Helper.reverse(existingSaving.get().getAmount()));
             transaction.setAccount(account.get());
             transaction.setCreatedAt(new Date());
             transaction.setUpdatedAt(null);
