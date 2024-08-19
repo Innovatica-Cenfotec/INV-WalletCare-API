@@ -35,10 +35,10 @@ public class Saving {
     /**
      * Name of the saving, e.g., "Vacation", "New Car", "Emergency Fund".
      */
-    @Column(name = "name", length = 50, nullable = false)
+    @Column(name = "name", length = 100, nullable = false)
     @NotNull(groups = {OnCreate.class, OnUpdate.class },
             message = "El nombre del ahorro es requerido")
-    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "^[a-zA-Z0-9 ]+$",
+    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
             message = "El nombre solo puede contener letras, números y espacios")
     private String name;
 
@@ -48,8 +48,6 @@ public class Saving {
     @Column(name = "description", length = 255)
     @Size(groups = {OnCreate.class, OnUpdate.class }, max = 255,
             message = "La descripción debe tener menos de 255 caracteres")
-    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "^[a-zA-Z0-9 ]+$",
-            message = "La descripción solo puede contener letras, números y espacios")
     private String description;
 
     /**
@@ -99,6 +97,9 @@ public class Saving {
     @Min(groups = {OnCreate.class, OnUpdate.class }, value = 0, message = "El monto del ahorro debe ser mayor a 0")
     private BigDecimal amount;
 
+    @Column(name = "balance", nullable = false)
+    private BigDecimal balance;
+
     public @NegativeOrZero(groups = OnCreate.class, message = "El ID es requerido para actualizar un ahorro") Long getId() {
         return id;
     }
@@ -116,26 +117,24 @@ public class Saving {
     }
 
     public @NotNull(groups = {OnCreate.class, OnUpdate.class},
-            message = "El nombre del ahorro es requerido") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z0-9 ]+$",
+            message = "El nombre del ahorro es requerido") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
             message = "El nombre solo puede contener letras, números y espacios") String getName() {
         return name;
     }
 
     public void setName(@NotNull(groups = {OnCreate.class, OnUpdate.class},
-            message = "El nombre del ahorro es requerido") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z0-9 ]+$",
+            message = "El nombre del ahorro es requerido") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
             message = "El nombre solo puede contener letras, números y espacios") String name) {
         this.name = name;
     }
 
     public @Size(groups = {OnCreate.class, OnUpdate.class}, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z0-9 ]+$",
-            message = "La descripción solo puede contener letras, números y espacios") String getDescription() {
+            message = "La descripción debe tener menos de 255 caracteres") String getDescription() {
         return description;
     }
 
     public void setDescription(@Size(groups = {OnCreate.class, OnUpdate.class}, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z0-9 ]+$",
-            message = "La descripción solo puede contener letras, números y espacios") String description) {
+            message = "La descripción debe tener menos de 255 caracteres") String description) {
         this.description = description;
     }
 
@@ -214,8 +213,16 @@ public class Saving {
     public @Min(groups = {OnCreate.class, OnUpdate.class}, value = 0, message = "El monto del gasto debe ser mayor a 0") BigDecimal getAmount() {
         return amount;
     }
-
-    public void setAmount(@Min(groups = {OnCreate.class, OnUpdate.class}, value = 0, message = "El monto del gasto debe ser mayor a 0") BigDecimal amount) {
+  
+    public void setAmount(@Min(groups = {OnCreate.class, OnUpdate.class}, value = 0, message = "El monto del ahorro debe ser mayor a 0") BigDecimal amount) {
         this.amount = amount;
+    }
+
+    public BigDecimal getBalance() {
+        return balance;
+    }
+
+    public void setBalance(BigDecimal balance) {
+        this.balance = balance;
     }
 }

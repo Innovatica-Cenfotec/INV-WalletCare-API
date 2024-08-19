@@ -1,5 +1,6 @@
 package com.inv.walletCare.rest.user;
 
+import com.inv.walletCare.logic.entity.helpers.configuration.AppParametersRepository;
 import com.inv.walletCare.logic.entity.response.Response;
 import com.inv.walletCare.logic.entity.passwordReset.ResetPasswordRequest;
 import com.inv.walletCare.logic.entity.email.Email;
@@ -36,6 +37,11 @@ public class PasswordController {
     private UserRepository userRepository;
     String otp;
 
+    @Autowired
+    private AppParametersRepository appParametersRepository;
+
+    private String frontURL;
+
     /**
      * Generates an OTP and sends it to the user's email.
      *
@@ -46,7 +52,8 @@ public class PasswordController {
     @PostMapping("/forgot")
     public String forgotPassword(@RequestBody String email) throws Exception {
         otp = otpService.generateOTP(email);
-        String resetPasswordLink = "http://localhost:4200/forgot-password-reset?email=" + email; // URL con el email como parámetro
+        this.frontURL = appParametersRepository.findByParamKey("FrontUrl").get().getParamValue();
+        String resetPasswordLink = frontURL + "/forgot-password-reset?email=" + email; // URL con el email como parámetro
 
         Email emailDetails = new Email();
         emailDetails.setTo(email);

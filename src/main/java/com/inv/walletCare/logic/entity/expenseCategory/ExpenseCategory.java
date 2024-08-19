@@ -1,4 +1,4 @@
-package com.inv.walletCare.logic.expenseCategory;
+package com.inv.walletCare.logic.entity.expenseCategory;
 
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.validation.OnCreate;
@@ -39,8 +39,8 @@ public class ExpenseCategory {
     @NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido")
     @Size(groups = {OnCreate.class, OnUpdate.class }, min = 4, max = 50,
             message = "El nombre solo puede tener entre 4 y 50 caracteres")
-    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "^[a-zA-Z ]+$",
-            message = "El nombre solo puede contener letras y espacios")
+    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
+            message = "El nombre solo puede contener letras, números")
     private String name;
 
     /**
@@ -84,14 +84,14 @@ public class ExpenseCategory {
     }
 
     public @NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 50,
-            message = "El nombre solo puede tener entre 4 y 50 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z ]+$",
-            message = "El nombre solo puede contener letras y espacios") String getName() {
+            message = "El nombre solo puede tener entre 4 y 50 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
+            message = "El nombre solo puede contener letras, números") String getName() {
         return name;
     }
 
     public void setName(@NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 50,
-            message = "El nombre solo puede tener entre 4 y 50 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z ]+$",
-            message = "El nombre solo puede contener letras y espacios") String name) {
+            message = "El nombre solo puede tener entre 4 y 50 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
+            message = "El nombre solo puede contener letras, números") String name) {
         this.name = name;
     }
 

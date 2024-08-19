@@ -17,6 +17,7 @@ import com.inv.walletCare.logic.entity.transaction.TransactionTypeEnum;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.exceptions.FieldValidationException;
 import com.inv.walletCare.logic.validation.OnCreate;
+import com.inv.walletCare.logic.validation.OnUpdate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -57,8 +58,11 @@ public class SavingRestController {
      */
     @GetMapping
     public List<Saving> getSavings() {
+        // Retrieve the currently authenticated user
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
+
+        // Return the list of savings owned by the current user
         return savingRepository.findByOwnerId(currentUser.getId());
     }
 
@@ -71,6 +75,7 @@ public class SavingRestController {
      */
     @PostMapping
     public Saving addSaving(@Validated(OnCreate.class) @RequestBody Saving saving) throws Exception {
+        // Retrieve the currently authenticated user
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
 
@@ -117,7 +122,7 @@ public class SavingRestController {
         Saving newSaving = new Saving();
         newSaving.setOwner(currentUser);
         newSaving.setName(saving.getName());
-        newSaving.setAmount(new BigDecimal(0));
+        newSaving.setAmount(saving.getAmount());
         newSaving.setDescription(saving.getDescription());
         newSaving.setType(saving.getType());
         newSaving.setAccount(account);
@@ -210,7 +215,7 @@ public class SavingRestController {
             savingAllocation.setAccount(account.get());
             savingAllocation.setSaving(existingSaving.get());
             savingAllocation.setOwner(currentUser);
-            savingAllocation.setAmount(Helper.reverse(existingSaving.get().getAmount()));
+            savingAllocation.setAmount(existingSaving.get().getAmount());
             savingAllocation.setCreatedAt(new Date());
             savingAllocation.setUpdatedAt(new Date());
             savingAllocation.setDeleted(false);
@@ -218,7 +223,7 @@ public class SavingRestController {
 
             // Create and save the transaction
             var transaction = new Transaction();
-            transaction.setAmount(existingSaving.get().getAmount());
+            transaction.setAmount(Helper.reverse(existingSaving.get().getAmount()));
             transaction.setAccount(account.get());
             transaction.setCreatedAt(new Date());
             transaction.setUpdatedAt(null);
@@ -258,4 +263,37 @@ public class SavingRestController {
         savingRepository.save(existingSaving.get());
     }
 
+    /**
+     * Update an existing saving.
+     *
+     * @param id     the ID of the saving to update
+     * @param saving the saving data to update
+     * @return the updated saving
+     */
+    @PutMapping("/{id}")
+    public Saving updateSaving(@Validated(OnUpdate.class) @PathVariable Long id, @RequestBody Saving saving) {
+        // Retrieve the currently authenticated user
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+
+        // Find the saving by ID and user ID, check if it exists
+        Optional<Saving> existingSaving = savingRepository.findByIdAndUserId(id, currentUser.getId());
+        if (existingSaving.isEmpty()) {
+            throw new IllegalArgumentException("El ahorro no se encontró no pertenece al usuario actual.");
+        }
+
+        // Check if the new saving name is already in use by another saving of the same user
+        var existingSavingName = savingRepository.findByNameAndOwnerId(saving.getName(), currentUser.getId());
+        if (existingSavingName.isPresent() && existingSaving.get().getId() != existingSavingName.get().getId()) {
+            throw new FieldValidationException("name", "El nombre del ahorro que ha ingresado ya esta en uso. Por favor, ingrese uno diferente.");
+        }
+
+        // Update the saving details
+        existingSaving.get().setUpdatedAt(new Date());
+        existingSaving.get().setName(saving.getName());
+        existingSaving.get().setDescription(saving.getDescription());
+
+        // Save and return the updated saving
+        return savingRepository.save(existingSaving.get());
+    }
 }
