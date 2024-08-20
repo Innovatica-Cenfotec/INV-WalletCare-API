@@ -21,4 +21,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     @Query("SELECT u FROM Transaction u WHERE u.owner.id = ?1 AND u.account.id = ?2")
     Optional<List<Optional<Transaction>>> findAllbyOwnerAndAccountId(Long ownerId, Long accountId);
+
+    @Query("SELECT u FROM Transaction u WHERE u.owner.id = ?1 AND u.type = 'EXPENSE'")
+    Optional<List<Transaction>> findAllExpensesByOwner(Long ownerId);
+
+    @Query("SELECT u FROM Transaction u WHERE u.owner.id = ?1 AND u.type = 'INCOME'")
+    Optional<List<Transaction>> findAllIncomesByOwner(Long ownerId);
 }
