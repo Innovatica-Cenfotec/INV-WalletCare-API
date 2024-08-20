@@ -3,6 +3,7 @@ package com.inv.walletCare.logic.entity.recurrence;
 import com.inv.walletCare.logic.entity.FrequencyTypeEnum;
 import com.inv.walletCare.logic.entity.goal.Goal;
 import com.inv.walletCare.logic.entity.goal.GoalService;
+import com.inv.walletCare.logic.entity.tip.TipService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -22,7 +23,13 @@ public class SchedulerConfig {
     private ExpenseRecurrenceService expenseService;
 
     @Autowired
+    private SavingRecurrenceService savingService;
+
+    @Autowired
     private GoalService goalService;
+
+    @Autowired
+    private TipService tipService;
 
     /**
      * Runs a task daily at midnight.
@@ -31,6 +38,7 @@ public class SchedulerConfig {
     public void runDaily() {
         incomeService.processIncome(FrequencyTypeEnum.DAILY);
         expenseService.processExpense(FrequencyTypeEnum.DAILY);
+        savingService.processSaving(FrequencyTypeEnum.DAILY);
     }
 
     /**
@@ -40,6 +48,7 @@ public class SchedulerConfig {
     public void runWeekly() {
         incomeService.processIncome(FrequencyTypeEnum.WEEKLY);
         expenseService.processExpense(FrequencyTypeEnum.WEEKLY);
+        savingService.processSaving(FrequencyTypeEnum.WEEKLY);
     }
 
     /**
@@ -49,6 +58,7 @@ public class SchedulerConfig {
     public void runMonthly() {
         incomeService.processIncome(FrequencyTypeEnum.MONTHLY);
         expenseService.processExpense(FrequencyTypeEnum.MONTHLY);
+        savingService.processSaving(FrequencyTypeEnum.MONTHLY);
     }
 
     /**
@@ -58,6 +68,7 @@ public class SchedulerConfig {
     public void runAnnual() {
         incomeService.processIncome(FrequencyTypeEnum.ANNUAL);
         expenseService.processExpense(FrequencyTypeEnum.ANNUAL);
+        savingService.processSaving(FrequencyTypeEnum.ANNUAL);
     }
 
     /**
@@ -67,13 +78,15 @@ public class SchedulerConfig {
     public void runBiweekly() {
         incomeService.processIncome(FrequencyTypeEnum.BIWEEKLY);
         expenseService.processExpense(FrequencyTypeEnum.BIWEEKLY);
+        savingService.processSaving(FrequencyTypeEnum.BIWEEKLY);
     }
 
     /**
      * Runs a task at the end of the month at 23:59:59
      */
     @Scheduled(cron = "59 59 23 L * ?")
-    public void runEveryFiveMinutes() {
+    public void runEveryFiveMinutes() throws Exception {
         goalService.runService();
+        tipService.runService();
     }
 }

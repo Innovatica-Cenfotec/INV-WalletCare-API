@@ -7,10 +7,13 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class ExpenseService {
-    @Autowired
-    private ExpenseRepository expenseRepository;
-    @Autowired
-    private AccountRepository accountRepository;
+    private final ExpenseRepository expenseRepository;
+    private final AccountRepository accountRepository;
+
+    public ExpenseService(ExpenseRepository expenseRepository, AccountRepository accountRepository) {
+        this.expenseRepository = expenseRepository;
+        this.accountRepository = accountRepository;
+    }
 
     /**
      * This method transfers the expenses in case the account is eliminated or the users leave the shared account

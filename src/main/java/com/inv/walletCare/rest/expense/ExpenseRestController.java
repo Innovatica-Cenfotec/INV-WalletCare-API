@@ -8,12 +8,15 @@ import com.inv.walletCare.logic.entity.accountUser.AccountUserRespository;
 import com.inv.walletCare.logic.entity.email.EmailSenderService;
 import com.inv.walletCare.logic.entity.expense.Expense;
 import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
+import com.inv.walletCare.logic.entity.expenseCategory.ExpenseCategoryRepository;
 import com.inv.walletCare.logic.entity.helpers.Helper;
 import com.inv.walletCare.logic.entity.recurrence.Recurrence;
 import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
 import com.inv.walletCare.logic.entity.account.AccountTypeEnum;
 import com.inv.walletCare.logic.entity.accountUser.AccountUser;
 import com.inv.walletCare.logic.entity.email.Email;
+import com.inv.walletCare.logic.entity.report.BarchartDTO;
+import com.inv.walletCare.logic.entity.report.ReportService;
 import com.inv.walletCare.logic.entity.tax.Tax;
 import com.inv.walletCare.logic.entity.tax.TaxRepository;
 import com.inv.walletCare.logic.entity.transaction.Transaction;
@@ -48,6 +51,8 @@ public class ExpenseRestController {
     private final RecurrenceRepository recurrenceRepository;
     private final EmailSenderService emailSenderService;
     private final AccountUserRespository accountUserRespository;
+    private final ReportService reportService;
+    private final ExpenseCategoryRepository expenseCategoryRepository;
 
     public ExpenseRestController(ExpenseRepository expenseRepository,
                                  AccountRepository accountRepository,
@@ -55,7 +60,9 @@ public class ExpenseRestController {
                                  TransactionService transactionService,
                                  RecurrenceRepository recurrenceRepository,
                                  EmailSenderService emailSenderService,
-                                 AccountUserRespository accountUserRespository) {
+                                 AccountUserRespository accountUserRespository,
+                                 ReportService reportService,
+                                 ExpenseCategoryRepository expenseCategoryRepository) {
         this.expenseRepository = expenseRepository;
         this.accountRepository = accountRepository;
         this.taxRepository = taxRepository;
@@ -63,6 +70,8 @@ public class ExpenseRestController {
         this.recurrenceRepository = recurrenceRepository;
         this.emailSenderService = emailSenderService;
         this.accountUserRespository = accountUserRespository;
+        this.reportService = reportService;
+        this.expenseCategoryRepository = expenseCategoryRepository;
     }
 
     /**
@@ -118,6 +127,17 @@ public class ExpenseRestController {
         newExpense.setUpdatedAt(new Date());
         newExpense.setDeleted(false);
         newExpense.setType(expense.getType());
+        // If it has a category, validate and add it.
+        if (expense.getExpenseCategory() != null) {
+            var expenseCategory = expenseCategoryRepository.findByIdAndOwnerId(expense.getExpenseCategory().getId(), user.getId());
+            if (expenseCategory.isEmpty()) {
+                throw new IllegalArgumentException("Categoría de gasto no encontrada.");
+            }
+
+            // Set the category
+            newExpense.setExpenseCategory(expenseCategory.get());
+        }
+
         var expenseCreated = expenseRepository.save(newExpense);
 
         if (expense.isAddTransaction()) {
@@ -244,9 +264,7 @@ public class ExpenseRestController {
             tran.setType(TransactionTypeEnum.EXPENSE);
             tran.setUpdatedAt(null);
             tran.setAccount(expense.getAccount());
-
             tran.setExpense(expenseCreated.get());
-
             tran.setIncomeAllocation(null);
             tran.setOwner(user);
             tran.setSavingAllocation(null);
@@ -289,6 +307,17 @@ public class ExpenseRestController {
         
         if (existingExpense.get().getAccount() != null) {
             sendEmailToAllMembers(existingExpense.get().getAccount().getId());
+        }
+
+        // If it has a category, validate and add it.
+        if (expense.getExpenseCategory() != null) {
+            var expenseCategory = expenseCategoryRepository.findByIdAndOwnerId(expense.getExpenseCategory().getId(), currentUser.getId());
+            if (expenseCategory.isEmpty()) {
+                throw new IllegalArgumentException("Categoría de gasto no encontrada.");
+            }
+
+            // update the category
+            existingExpense.get().setExpenseCategory(expenseCategory.get());
         }
 
         // Expense details
@@ -377,5 +406,16 @@ public class ExpenseRestController {
                 CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
             }
         }
+    }
+
+    /**
+     * Get a report of expenses sort by month and category created by logged user.
+     * @return List of BarchartDTO with the report of expense.
+     */
+    @GetMapping("/report/by-category/{year}")
+    public List<BarchartDTO> getAnualAmountByCategory(@PathVariable int year) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+        return reportService.getYearlyExpenseByCategoryReport(year, user.getId());
     }
 }
