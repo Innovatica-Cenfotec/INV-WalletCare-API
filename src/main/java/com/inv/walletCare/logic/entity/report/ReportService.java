@@ -1,10 +1,16 @@
 package com.inv.walletCare.logic.entity.report;
 
+import com.inv.walletCare.logic.entity.account.AccountRepository;
 import com.inv.walletCare.logic.entity.expense.Expense;
 import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
 import com.inv.walletCare.logic.entity.expenseCategory.ExpenseCategory;
 import com.inv.walletCare.logic.entity.income.Income;
 import com.inv.walletCare.logic.entity.income.IncomeRepository;
+import com.inv.walletCare.logic.entity.recurrence.Recurrence;
+import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
+import com.inv.walletCare.logic.entity.transaction.Transaction;
+import com.inv.walletCare.logic.entity.transaction.TransactionRepository;
+import com.inv.walletCare.logic.entity.transaction.TransactionTypeEnum;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -19,6 +25,14 @@ import java.util.*;
 @Service
 public class ReportService {
     /**
+     * Recurrence repository interface.
+     */
+    private final RecurrenceRepository recurrenceRepository;
+    /**
+     * Transaction repository interface.
+     */
+    private final TransactionRepository transactionRepository;
+    /**
      * Expense repository interface.
      */
     private final ExpenseRepository expenseRepository;
@@ -29,10 +43,17 @@ public class ReportService {
 
     /**
      * Service constructor in charge of initializing required repositories. Replace @autowire.
+     * @param recurrenceRepository Recurrence repository interface.
+     * @param transactionRepository Transaction repository interface.
      * @param expenseRepository Expense repository interface.
      * @param incomeRepository Income repository interface.
      */
-    public ReportService(ExpenseRepository expenseRepository, IncomeRepository incomeRepository) {
+    public ReportService(RecurrenceRepository recurrenceRepository,
+                         TransactionRepository transactionRepository,
+                         ExpenseRepository expenseRepository,
+                         IncomeRepository incomeRepository) {
+        this.recurrenceRepository = recurrenceRepository;
+        this.transactionRepository = transactionRepository;
         this.expenseRepository = expenseRepository;
         this.incomeRepository = incomeRepository;
     }
@@ -55,8 +76,20 @@ public class ReportService {
      * @return List of BarchartDTO with the sum sorted by month and category.
      */
     public List<BarchartDTO> getYearlyExpenseByCategoryReport(int year, long userId) {
-        List<Expense> expenses = expenseRepository.findAllNotTemplatesByUserId(userId);
+        List<Recurrence> recurrences = recurrenceRepository.findAllByOwner(userId).get();
+        List<Transaction> transactions = transactionRepository.findAllExpensesByOwner(userId).get();
+        List<Expense> expenses = new ArrayList<>();
         Map<String, Map<String, BigDecimal>> categoryMonthSums = new HashMap<>();
+
+        for (var recurrence : recurrences.stream().filter(r -> r.getExpense() != null).toList()) {
+            Expense recurringExpense = recurrence.getExpense();
+            expenses.add(recurringExpense);
+        }
+
+        for (var transaction : transactions) {
+            Expense expense = transaction.getExpense();
+            expenses.add(expense);
+        }
 
         for (Expense expense : expenses) {
             LocalDate expenseDate = convertToLocalDateViaInstant(expense.getCreatedAt());
@@ -108,8 +141,21 @@ public class ReportService {
      * @return List of BarchartDTO with the sum sorted by month and category.
      */
     public List<BarchartDTO> getYearlyIncomeByCategoryReport(int year, long userId) {
-        List<Income> incomes = incomeRepository.findAllNotTemplatesByUserId(userId);
+        List<Recurrence> recurrences = recurrenceRepository.findAllByOwner(userId).get();
+        List<Transaction> transactions = transactionRepository.findAllIncomesByOwner(userId).get();
+
+        List<Income> incomes = new ArrayList<>();
         Map<String, Map<String, BigDecimal>> categoryMonthSums = new HashMap<>();
+
+        for (var recurrence : recurrences.stream().filter(r -> r.getIncome() != null).toList()) {
+            Income recurringIncome = recurrence.getIncome();
+            incomes.add(recurringIncome);
+        }
+
+        for (var transaction : transactions) {
+            Income income = transaction.getIncomeAllocation().getIncome();
+            incomes.add(income);
+        }
 
         for (Income income : incomes) {
             LocalDate expenseDate = convertToLocalDateViaInstant(income.getCreatedAt());
