@@ -88,12 +88,15 @@ public class CategoryRestController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) authentication.getPrincipal();
 
-        Optional<ExpenseCategory> existingCategory = categoryRepository.findByNameAndOwnerId(category.getName(), user.getId());
+        // check if the category exists and belongs to the user
+        Optional<ExpenseCategory> existingCategory = categoryRepository.findByIdAndOwnerId(id, user.getId());
         if (existingCategory.isEmpty()) {
             throw new IllegalArgumentException("La categoría no existe o no pertenece al usuario");
         }
 
-        if (existingCategory.get().getId() != id) {
+        // check if the category name already exists
+        Optional<ExpenseCategory> existingCategoryName = categoryRepository.findByNameAndOwnerId(category.getName(), user.getId());
+        if (existingCategoryName.isPresent() && existingCategoryName.get().getId() != id) {
             throw new FieldValidationException("name", "El nombre de la categoría ya existe, por favor elija otro");
         }
 
@@ -104,6 +107,7 @@ public class CategoryRestController {
 
     /**
      * Delete a category
+     *
      * @param id Category id
      */
     @DeleteMapping("/{id}")
