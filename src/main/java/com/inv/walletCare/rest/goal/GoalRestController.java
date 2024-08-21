@@ -126,7 +126,7 @@ public class GoalRestController {
      * Get a report with the count of goals sort by status.
      * @return List of PiechartDTO with the report of expense.
      */
-    @GetMapping("/report/progress")
+    @GetMapping("/report/progress-by-status")
     public List<PiechartDTO> getAnualAmountByCategory() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) authentication.getPrincipal();
