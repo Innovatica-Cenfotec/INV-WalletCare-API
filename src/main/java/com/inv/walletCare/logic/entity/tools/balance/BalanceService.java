@@ -4,12 +4,16 @@ import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.helpers.Helper;
 import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
 import com.inv.walletCare.logic.entity.transaction.TransactionRepository;
+import com.inv.walletCare.logic.entity.transaction.TransactionTypeEnum;
 import com.inv.walletCare.logic.entity.user.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -153,7 +157,7 @@ public class BalanceService {
                         //Monthly Iteration
                         for (int i = 0; i < 11; i++) {
                             //Month validation
-                            if (tran.getCreatedAt().getMonth()  == i) {
+                            if (tran.getCreatedAt().getMonth() == i) {
                                 incomes[i] = incomes[i] + tran.getAmount().doubleValue();
                             }
                         }
@@ -177,4 +181,38 @@ public class BalanceService {
         return balances;
     }
 
+    public List<List<Double>> monthlyBalancesByUser(User user) throws Exception {
+        var transactions = transactionRepository.findAllbyOwner(user.getId());
+        ArrayList<List<Double>> info = new ArrayList<>();
+        Double[] days = new Double[LocalDate.now().getDayOfMonth()];
+        Double[] thisMonthExpenses = new Double[LocalDate.now().getDayOfMonth()];
+        Double[] thisMonthIncomes = new Double[LocalDate.now().getDayOfMonth()];
+
+        Arrays.fill(thisMonthExpenses, 0.0);
+        Arrays.fill(thisMonthIncomes, 0.0);
+
+        for (var tran : transactions.get()) {
+            if (tran.getCreatedAt().getYear() == new Date().getYear()) {
+                if (tran.getCreatedAt().getMonth() == new Date().getMonth()) {
+                    for (int i = 1; i <= LocalDate.now().getDayOfMonth(); i++) {
+                        days[i - 1] = Double.valueOf(i);
+                        if (tran.getCreatedAt().toInstant().atZone(ZoneId.systemDefault()).toLocalDate().getDayOfMonth() == i) {
+                            if (tran.getType().equals(TransactionTypeEnum.EXPENSE)) {
+                                thisMonthExpenses[i - 1] = thisMonthExpenses[i - 1] + Helper.reverse(tran.getAmount()).doubleValue();
+                            } else if (tran.getType().equals(TransactionTypeEnum.INCOME)) {
+                                thisMonthIncomes[i - 1] = thisMonthIncomes[i - 1] + tran.getAmount().doubleValue();
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+
+        info.add(Arrays.asList(days));
+        info.add(Arrays.asList(thisMonthExpenses));
+        info.add(Arrays.asList(thisMonthIncomes));
+
+        return info;
+    }
 }
