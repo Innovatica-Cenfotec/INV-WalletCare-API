@@ -58,7 +58,7 @@ public class CategoryRestController {
      * @return Created category
      */
     @PostMapping
-    public ExpenseCategory createCategory(@Validated(OnCreate.class) ExpenseCategory category) {
+    public ExpenseCategory createCategory(@Validated(OnCreate.class) @RequestBody ExpenseCategory category) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) authentication.getPrincipal();
         category.setOwner(user);
@@ -84,14 +84,17 @@ public class CategoryRestController {
      * @return Updated category
      */
     @PutMapping("/{id}")
-    public ExpenseCategory updateCategory(@PathVariable long id, @Validated(OnCreate.class) ExpenseCategory category) {
+    public ExpenseCategory updateCategory(@PathVariable long id, @Validated(OnCreate.class) @RequestBody ExpenseCategory category) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) authentication.getPrincipal();
-        category.setOwner(user);
 
         Optional<ExpenseCategory> existingCategory = categoryRepository.findByNameAndOwnerId(category.getName(), user.getId());
-        if (existingCategory.isPresent() && existingCategory.get().getId() != id) {
-            throw new FieldValidationException("id", "La categoría no existe o no pertenece al usuario");
+        if (existingCategory.isEmpty()) {
+            throw new IllegalArgumentException("La categoría no existe o no pertenece al usuario");
+        }
+
+        if (existingCategory.get().getId() != id) {
+            throw new FieldValidationException("name", "El nombre de la categoría ya existe, por favor elija otro");
         }
 
         existingCategory.get().setName(category.getName());
@@ -110,7 +113,7 @@ public class CategoryRestController {
 
         Optional<ExpenseCategory> existingCategory = categoryRepository.findByIdAndOwnerId(id, user.getId());
         if (existingCategory.isEmpty()) {
-            throw new FieldValidationException("id", "La categoría no existe o no pertenece al usuario");
+            throw new IllegalArgumentException("La categoría no existe o no pertenece al usuario");
         }
 
         existingCategory.get().setDeleted(true);
