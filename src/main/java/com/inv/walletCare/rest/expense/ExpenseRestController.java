@@ -8,6 +8,7 @@ import com.inv.walletCare.logic.entity.accountUser.AccountUserRespository;
 import com.inv.walletCare.logic.entity.email.EmailSenderService;
 import com.inv.walletCare.logic.entity.expense.Expense;
 import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
+import com.inv.walletCare.logic.entity.expenseCategory.ExpenseCategory;
 import com.inv.walletCare.logic.entity.expenseCategory.ExpenseCategoryRepository;
 import com.inv.walletCare.logic.entity.helpers.Helper;
 import com.inv.walletCare.logic.entity.recurrence.Recurrence;
@@ -310,14 +311,28 @@ public class ExpenseRestController {
         }
 
         // If it has a category, validate and add it.
+        ExpenseCategory expenseCategory = null;
         if (expense.getExpenseCategory() != null) {
-            var expenseCategory = expenseCategoryRepository.findByIdAndOwnerId(expense.getExpenseCategory().getId(), currentUser.getId());
-            if (expenseCategory.isEmpty()) {
+            var expenseCategoryExists = expenseCategoryRepository.findByIdAndOwnerId(expense.getExpenseCategory().getId(), currentUser.getId());
+            if (expenseCategoryExists.isEmpty()) {
                 throw new IllegalArgumentException("Categoría de gasto no encontrada.");
             }
 
             // update the category
-            existingExpense.get().setExpenseCategory(expenseCategory.get());
+            existingExpense.get().setExpenseCategory(expenseCategoryExists.get());
+            expenseCategory = expenseCategoryExists.get();
+        }
+
+        // If it has a tax, validate and add it.
+        Tax tax = null;
+        if (expense.getTax() != null) {
+            var taxExists = taxRepository.findByIdAndUserId(expense.getTax().getId(), currentUser.getId());
+            if (taxExists.isEmpty()) {
+                throw new IllegalArgumentException("Impuesto no encontrado.");
+            }
+
+            existingExpense.get().setTax(taxExists.get());
+            tax = taxExists.get();
         }
 
         // Expense details
@@ -337,7 +352,10 @@ public class ExpenseRestController {
         existingExpense.get().setTax(expense.getTax());
         // Timestamps
         existingExpense.get().setUpdatedAt(new Date());
-        return expenseRepository.save(existingExpense.get());
+        var expenseUpdated = expenseRepository.save(existingExpense.get());
+        expenseUpdated.setExpenseCategory(expenseCategory);
+        expenseUpdated.setTax(tax);
+        return expenseUpdated;
     }
 
     /**
