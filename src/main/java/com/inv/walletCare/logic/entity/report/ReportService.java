@@ -75,7 +75,7 @@ public class ReportService {
                         .getDisplayName(TextStyle.SHORT, Locale.ENGLISH).toLowerCase();
                 ExpenseCategory category = expense.getExpenseCategory();
 
-                if (category == null || category.getDeleted()) {
+                if (category == null) {
                     ExpenseCategory uncategorized = new ExpenseCategory();
                     uncategorized.setName("uncategorized");
                     category = uncategorized;
