@@ -1,13 +1,11 @@
 package com.inv.walletCare.logic.entity.report;
 
-import java.util.List;
-
 /**
- * Object to transfer bar chart report details to report service.
+ * Object to transfer pie chart report details to report service.
  */
-public class BarchartDTO {
+public class PiechartDTO {
     private String category;
-    private List<BarchartItemDTO> data;
+    private Long data;
 
     public String getCategory() {
         return category;
@@ -17,11 +15,11 @@ public class BarchartDTO {
         this.category = category;
     }
 
-    public List<BarchartItemDTO> getData() {
+    public Long getData() {
         return data;
     }
 
-    public void setData(List<BarchartItemDTO> data) {
+    public void setData(Long data) {
         this.data = data;
     }
 }

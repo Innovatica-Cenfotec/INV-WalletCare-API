@@ -4,6 +4,7 @@ import com.inv.walletCare.logic.entity.FrequencyTypeEnum;
 import com.inv.walletCare.logic.entity.IncomeExpenceType;
 import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.account.AccountRepository;
+import com.inv.walletCare.logic.entity.expense.Expense;
 import com.inv.walletCare.logic.entity.income.Income;
 import com.inv.walletCare.logic.entity.income.IncomeRepository;
 import com.inv.walletCare.logic.entity.incomeAllocation.IncomeAllocation;
@@ -198,6 +199,17 @@ public class IncomeRestController {
         return income.get();
     }
 
+    /**
+     * Get all expenses with isTemplate = true created by logged user.
+     * @return List of expenses templates created by logged user.
+     */
+    @GetMapping("/templates")
+    public List<Income> getExpenseTemplatesByUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+        return incomeRepository.findAllTemplatesByUserId(user.getId()).get();
+    }
+
     @PutMapping("/{id}")
     public Income updateIncome(@Validated(OnUpdate.class) @PathVariable Long id, @RequestBody Income income) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -219,8 +231,8 @@ public class IncomeRestController {
         existingIncome.get().setTax(income.getTax());
         existingIncome.get().setFrequency(income.getFrequency());
         return  incomeRepository.save(existingIncome.get());
-
     }
+
     @DeleteMapping("/{id}")
     public void deleteIncome(@PathVariable Long id){
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

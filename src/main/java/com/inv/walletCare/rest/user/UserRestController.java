@@ -9,6 +9,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -134,5 +135,26 @@ public class UserRestController {
                     return userRepository.save(existingUser);
                 })
                 .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    @GetMapping("/new-users")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public int[] getNewUsersThisYear() {
+
+        int[] countUsers = new int[12];
+
+        for (var user : userRepository.findAll()) {
+            if (user.getCreatedAt().getYear() == new Date().getYear()) {
+                for (int i = 0; i <= 11; i++) {
+                    //Month validations
+                    if (user.getCreatedAt().getMonth() == i) {
+                        countUsers[i] = countUsers[i] + 1;
+                    }
+
+                }
+            }
+        }
+
+        return countUsers;
     }
 }

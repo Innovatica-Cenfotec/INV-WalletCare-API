@@ -4,6 +4,9 @@ import com.inv.walletCare.logic.entity.account.AccountRepository;
 import com.inv.walletCare.logic.entity.expense.Expense;
 import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
 import com.inv.walletCare.logic.entity.expenseCategory.ExpenseCategory;
+import com.inv.walletCare.logic.entity.goal.Goal;
+import com.inv.walletCare.logic.entity.goal.GoalRepository;
+import com.inv.walletCare.logic.entity.goal.GoalStatusEnum;
 import com.inv.walletCare.logic.entity.income.Income;
 import com.inv.walletCare.logic.entity.income.IncomeRepository;
 import com.inv.walletCare.logic.entity.recurrence.Recurrence;
@@ -25,14 +28,6 @@ import java.util.*;
 @Service
 public class ReportService {
     /**
-     * Recurrence repository interface.
-     */
-    private final RecurrenceRepository recurrenceRepository;
-    /**
-     * Transaction repository interface.
-     */
-    private final TransactionRepository transactionRepository;
-    /**
      * Expense repository interface.
      */
     private final ExpenseRepository expenseRepository;
@@ -40,22 +35,22 @@ public class ReportService {
      * Income repository interface.
      */
     private final IncomeRepository incomeRepository;
+    /**
+     * Goal repository interface.
+     */
+    private final GoalRepository goalRepository;
 
     /**
      * Service constructor in charge of initializing required repositories. Replace @autowire.
-     * @param recurrenceRepository Recurrence repository interface.
-     * @param transactionRepository Transaction repository interface.
      * @param expenseRepository Expense repository interface.
      * @param incomeRepository Income repository interface.
+     * @param goalRepository Goal repository interface.
      */
-    public ReportService(RecurrenceRepository recurrenceRepository,
-                         TransactionRepository transactionRepository,
-                         ExpenseRepository expenseRepository,
-                         IncomeRepository incomeRepository) {
-        this.recurrenceRepository = recurrenceRepository;
-        this.transactionRepository = transactionRepository;
+    public ReportService(ExpenseRepository expenseRepository, IncomeRepository incomeRepository,
+                         GoalRepository goalRepository) {
         this.expenseRepository = expenseRepository;
         this.incomeRepository = incomeRepository;
+        this.goalRepository = goalRepository;
     }
 
     /**
@@ -76,20 +71,8 @@ public class ReportService {
      * @return List of BarchartDTO with the sum sorted by month and category.
      */
     public List<BarchartDTO> getYearlyExpenseByCategoryReport(int year, long userId) {
-        List<Recurrence> recurrences = recurrenceRepository.findAllByOwner(userId).get();
-        List<Transaction> transactions = transactionRepository.findAllExpensesByOwner(userId).get();
-        List<Expense> expenses = new ArrayList<>();
+        List<Expense> expenses = expenseRepository.findAllNotTemplatesByUserId(userId);
         Map<String, Map<String, BigDecimal>> categoryMonthSums = new HashMap<>();
-
-        for (var recurrence : recurrences.stream().filter(r -> r.getExpense() != null).toList()) {
-            Expense recurringExpense = recurrence.getExpense();
-            expenses.add(recurringExpense);
-        }
-
-        for (var transaction : transactions) {
-            Expense expense = transaction.getExpense();
-            expenses.add(expense);
-        }
 
         for (Expense expense : expenses) {
             LocalDate expenseDate = convertToLocalDateViaInstant(expense.getCreatedAt());
@@ -99,9 +82,9 @@ public class ReportService {
                 ExpenseCategory category = expense.getExpenseCategory();
 
                 if (category == null) {
-                    ExpenseCategory newCategory = new ExpenseCategory();
-                    newCategory.setName("uncategorized");
-                    category = newCategory;
+                    ExpenseCategory uncategorized = new ExpenseCategory();
+                    uncategorized.setName("uncategorized");
+                    category = uncategorized;
                 }
 
                 categoryMonthSums.putIfAbsent(category.getName(), new HashMap<>());
@@ -141,21 +124,8 @@ public class ReportService {
      * @return List of BarchartDTO with the sum sorted by month and category.
      */
     public List<BarchartDTO> getYearlyIncomeByCategoryReport(int year, long userId) {
-        List<Recurrence> recurrences = recurrenceRepository.findAllByOwner(userId).get();
-        List<Transaction> transactions = transactionRepository.findAllIncomesByOwner(userId).get();
-
-        List<Income> incomes = new ArrayList<>();
+        List<Income> incomes = incomeRepository.findAllNotTemplatesByUserId(userId);
         Map<String, Map<String, BigDecimal>> categoryMonthSums = new HashMap<>();
-
-        for (var recurrence : recurrences.stream().filter(r -> r.getIncome() != null).toList()) {
-            Income recurringIncome = recurrence.getIncome();
-            incomes.add(recurringIncome);
-        }
-
-        for (var transaction : transactions) {
-            Income income = transaction.getIncomeAllocation().getIncome();
-            incomes.add(income);
-        }
 
         for (Income income : incomes) {
             LocalDate expenseDate = convertToLocalDateViaInstant(income.getCreatedAt());
@@ -192,5 +162,37 @@ public class ReportService {
         }
 
         return yearlyReport;
+    }
+
+    /**
+     * Get a report with the count of goals by status.
+     * @param userId Long value with the user id.
+     * @return List of BarchartDTO with the sum sorted by month and category.
+     */
+    public List<PiechartDTO> getGoalsProgressByStatus(long userId) {
+        List<PiechartDTO> piecharts = new ArrayList<>();
+        List<Goal> goals = goalRepository.findAllByOwnerId(userId);
+
+        Map<GoalStatusEnum, Long> countByStatus = new HashMap<>();
+
+        for (GoalStatusEnum status : GoalStatusEnum.values() ) {
+            countByStatus.put(status, 0L);
+        }
+
+        // Count the goals based on their status
+        for (Goal goal : goals) {
+            GoalStatusEnum status = goal.getStatus();
+            countByStatus.put(status, countByStatus.get(status) + 1);
+        }
+
+        // Convert the counts into PiechartDTO objects
+        for (Map.Entry<GoalStatusEnum, Long> entry : countByStatus.entrySet()) {
+            PiechartDTO piechart = new PiechartDTO();
+            piechart.setCategory(entry.getKey().name());
+            piechart.setData(entry.getValue());
+            piecharts.add(piechart);
+        }
+
+        return piecharts;
     }
 }
