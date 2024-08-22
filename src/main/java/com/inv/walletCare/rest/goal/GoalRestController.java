@@ -4,11 +4,11 @@ import com.inv.walletCare.logic.entity.goal.Goal;
 import com.inv.walletCare.logic.entity.goal.GoalRepository;
 import com.inv.walletCare.logic.entity.goal.GoalService;
 import com.inv.walletCare.logic.entity.goal.GoalStatusEnum;
+import com.inv.walletCare.logic.entity.report.PiechartDTO;
+import com.inv.walletCare.logic.entity.report.ReportService;
 import com.inv.walletCare.logic.entity.rol.RoleEnum;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.exceptions.FieldValidationException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -21,11 +21,19 @@ import java.util.Optional;
 @RequestMapping("/goals")
 public class GoalRestController {
 
-    @Autowired
-    private GoalRepository goalRepository;
+    private final GoalRepository goalRepository;
 
-    @Autowired
-    private GoalService goalService;
+    private final GoalService goalService;
+
+    private final ReportService reportService;
+
+    public GoalRestController(GoalRepository goalRepository,
+                              GoalService goalService,
+                              ReportService reportService) {
+        this.goalRepository = goalRepository;
+        this.goalService = goalService;
+        this.reportService = reportService;
+    }
 
     /***
      * Get all the goals
@@ -112,5 +120,16 @@ public class GoalRestController {
 
         Goal goal = goalService.createGoal(user);
         return goalRepository.save(goal);
+    }
+
+    /**
+     * Get a report with the count of goals sort by status.
+     * @return List of PiechartDTO with the report of expense.
+     */
+    @GetMapping("/report/progress-by-status")
+    public List<PiechartDTO> getAnualAmountByCategory() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+        return reportService.getGoalsProgressByStatus(user.getId());
     }
 }

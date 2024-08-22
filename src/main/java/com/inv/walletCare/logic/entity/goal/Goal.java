@@ -8,8 +8,6 @@ import com.inv.walletCare.logic.validation.OnUpdate;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NegativeOrZero;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.util.Date;

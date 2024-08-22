@@ -93,6 +93,17 @@ public class TransactionRestController {
         return balanceService.annualBalancesByUser(currentUser);
     }
 
+    /**
+     * Retrieves all balances in the current month by Day
+     * @return A List of lists with the balances by day
+     */
+    @GetMapping("/balances-monthly")
+    public List<List<Double>> monthlyBalancesByUser() throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+
+        return balanceService.monthlyBalancesByUser(currentUser);
+    }
 
     /**
      * Make a rollback for a transaction
@@ -128,4 +139,6 @@ public class TransactionRestController {
 
         return ResponseEntity.ok(new Response("Ok"));
     }
+
+
 }
