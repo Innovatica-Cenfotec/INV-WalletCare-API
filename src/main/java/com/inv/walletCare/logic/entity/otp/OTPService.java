@@ -53,7 +53,6 @@ public class OTPService {
         }
         optionalUser.map(existingUser->{
             existingUser.setName(user.getEmail());
-            existingUser.setPassword(psEncoder.encode(otp));
             existingUser.setEmail(user.getEmail());
             //existingUser.setPasswordChangeRequired(true);
             return userRepository.save(existingUser);

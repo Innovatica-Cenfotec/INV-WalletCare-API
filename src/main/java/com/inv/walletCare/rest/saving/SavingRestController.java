@@ -129,11 +129,14 @@ public class SavingRestController {
         newSaving.setCreatedAt(new Date());
         newSaving.setUpdatedAt(new Date());
         newSaving.setDeleted(false);
-        //newSaving.setBalance(BigDecimal.ZERO);
+        newSaving.setBalance(BigDecimal.ZERO);
+
 
         if (saving.getType() == SavingTypeEnum.RECURRENCE) {
             newSaving.setFrequency(saving.getFrequency());
             newSaving.setScheduledDay(saving.getScheduledDay());
+            System.out.println(saving.getTargetDate());
+            newSaving.setTargetDate(saving.getTargetDate());
         }
 
         Saving savingCreated = savingRepository.save(newSaving);

@@ -56,6 +56,9 @@ public class Saving {
     @Column(name = "created_at", nullable = false)
     private Date createdAt;
 
+    @Column(name="target_date", nullable = true)
+    private Date targetDate;
+
     /**
      * DateTIme when the saving was last updated.
      */
@@ -192,6 +195,14 @@ public class Saving {
 
     public void setType(@NotNull(groups = OnCreate.class, message = "El tipo de ahorro es requerido") SavingTypeEnum type) {
         this.type = type;
+    }
+
+    public Date getTargetDate() {
+        return targetDate;
+    }
+
+    public void setTargetDate(Date targetDate) {
+        this.targetDate = targetDate;
     }
 
     public boolean isAddTransaction() {
