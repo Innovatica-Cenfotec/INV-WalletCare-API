@@ -92,24 +92,28 @@ public class ExpenseRestController {
             throw new FieldValidationException("name", "El nombre del gasto que ha ingresado ya está en uso. Por favor, ingrese uno diferente.");
         }
 
-        if (expense.isTaxRelated()) {
-            Optional<Tax> tax = taxRepository.findById(expense.getTax().getId());
-            if (tax.isEmpty()) {
-                throw new FieldValidationException("tax", "El impuesto es requerido para los gastos relacionados con impuestos.");
+        // If it has a category, validate and add it.
+        ExpenseCategory expenseCategory = null;
+        if (expense.getExpenseCategory() != null) {
+            var expenseCategoryExists = expenseCategoryRepository.findByIdAndOwnerId(expense.getExpenseCategory().getId(), user.getId());
+            if (expenseCategoryExists.isEmpty()) {
+                throw new IllegalArgumentException("Categoría de gasto no encontrada.");
             }
 
-            if (!user.getId().equals(tax.get().getOwner().getId())) {
+            // set the category
+            expenseCategory = expenseCategoryExists.get();
+        }
 
-                throw new FieldValidationException("tax", "El impuesto con el ID " + expense.getTax().getId() + " no existe o no pertenece al usuario actual.");
+        // If it has a tax, validate and add it.
+        Tax tax = null;
+        if (expense.getTax() != null) {
+            var taxExists = taxRepository.findByIdAndUserId(expense.getTax().getId(), user.getId());
+            if (taxExists.isEmpty()) {
+                throw new IllegalArgumentException("Impuesto no encontrado.");
             }
 
-            if (expense.getFrequency() == null) {
-                throw new FieldValidationException("frequency", "La frecuencia es requerida para los ingresos relacionados con impuestos.");
-            }
-
-            if (expense.getFrequency() == FrequencyTypeEnum.OTHER && expense.getScheduledDay() <= 1 || expense.getScheduledDay() >= 31) {
-                throw new FieldValidationException("scheduleDay", "El día programado es requerido para los ingresos relacionados con impuestos.");
-            }
+            // set the tax
+            tax = taxExists.get();
         }
 
         Expense newExpense = new Expense();
@@ -122,22 +126,13 @@ public class ExpenseRestController {
         newExpense.setTemplate(expense.isTemplate());
         newExpense.setFrequency(expense.getFrequency());
         newExpense.setScheduledDay(expense.getScheduledDay());
-        newExpense.setTax(expense.getTax());
-        newExpense.setTaxRelated(expense.isTemplate());
+        newExpense.setTax(tax);
+        newExpense.setExpenseCategory(expenseCategory);
+        newExpense.setTaxRelated(tax != null);
         newExpense.setCreatedAt(new Date());
         newExpense.setUpdatedAt(new Date());
         newExpense.setDeleted(false);
         newExpense.setType(expense.getType());
-        // If it has a category, validate and add it.
-        if (expense.getExpenseCategory() != null) {
-            var expenseCategory = expenseCategoryRepository.findByIdAndOwnerId(expense.getExpenseCategory().getId(), user.getId());
-            if (expenseCategory.isEmpty()) {
-                throw new IllegalArgumentException("Categoría de gasto no encontrada.");
-            }
-
-            // Set the category
-            newExpense.setExpenseCategory(expenseCategory.get());
-        }
 
         var expenseCreated = expenseRepository.save(newExpense);
 
@@ -303,7 +298,7 @@ public class ExpenseRestController {
 
         Optional<Expense> existingIncomeName = expenseRepository.findTemplateByNameAndOwnerId(expense.getName(), currentUser.getId());
         if (existingIncomeName.isPresent() && !Objects.equals(existingExpense.get().getId(), existingIncomeName.get().getId())) {
-            throw new IllegalArgumentException("El nombre de la plantilla de gasto ya está en uso. Por favor, ingrese uno diferente.");
+            throw new FieldValidationException("name","El nombre de la plantilla de gasto ya está en uso. Por favor, ingrese uno diferente.");
         }
         
         if (existingExpense.get().getAccount() != null) {
@@ -347,9 +342,9 @@ public class ExpenseRestController {
         existingExpense.get().setFrequency(expense.getFrequency());
         existingExpense.get().setScheduledDay(expense.getScheduledDay());
         // Category and tax details
-        existingExpense.get().setExpenseCategory(expense.getExpenseCategory());
-        existingExpense.get().setTaxRelated(expense.isTaxRelated());
-        existingExpense.get().setTax(expense.getTax());
+        existingExpense.get().setExpenseCategory(expenseCategory);
+        existingExpense.get().setTax(tax);
+        existingExpense.get().setTaxRelated(tax != null);
         // Timestamps
         existingExpense.get().setUpdatedAt(new Date());
         var expenseUpdated = expenseRepository.save(existingExpense.get());

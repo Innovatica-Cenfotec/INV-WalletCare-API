@@ -85,31 +85,15 @@ public class IncomeRestController {
                     "El nombre del ingreso que ha ingresado ya está en uso. Por favor, ingresa uno diferente.");
         }
 
-        if (income.isTaxRelated()) {
-            // Validate that the tax IDs are valid
-            Optional<Tax> tax = taxRepository.findById(income.getTax().getId());
-            if (tax.isEmpty()) {
-                throw new FieldValidationException("tax",
-                        "El impuesto es requerido para los ingresos relacionados con impuestos.");
+        // If it has a tax, validate and add it.
+        Tax tax = null;
+        if (income.getTax() != null) {
+            var taxExists = taxRepository.findByIdAndUserId(income.getTax().getId(), currentUser.getId());
+            if (taxExists.isEmpty()) {
+                throw new IllegalArgumentException("Impuesto no encontrado.");
             }
 
-            // Validate that the tax belongs to the current user
-            if (tax.get().getOwner().getId() != currentUser.getId()) {
-                throw new FieldValidationException("tax",
-                        "El impuesto con el ID " + income.getTax().getId()
-                                + " no existe o no pertenece al usuario actual.");
-            }
-
-            if (income.getFrequency() == null) {
-                throw new FieldValidationException("frequency",
-                        "La frecuencia es requerida para los ingresos relacionados con impuestos.");
-            }
-
-            if (income.getFrequency() == FrequencyTypeEnum.OTHER
-                    && income.getScheduledDay() <= 1 || income.getScheduledDay() >= 31) {
-                throw new FieldValidationException("scheduledDay",
-                        "El día programado es requerido para los ingresos relacionados con impuestos.");
-            }
+            tax = taxExists.get();
         }
 
         Income newIncome = new Income();
@@ -122,7 +106,8 @@ public class IncomeRestController {
         newIncome.setFrequency(income.getFrequency());
         newIncome.setScheduledDay(income.getScheduledDay());
         newIncome.setTaxRelated(income.isTaxRelated());
-        newIncome.setTax(income.getTax());
+        newIncome.setTax(tax);
+        newIncome.setTaxRelated(tax != null);
         newIncome.setCreatedAt(new Date());
         newIncome.setUpdatedAt(new Date());
         newIncome.setDeleted(false);
@@ -222,6 +207,18 @@ public class IncomeRestController {
         if (existingIncomeName.isPresent() && existingIncome.get().getId() != existingIncomeName.get().getId()) {
             throw new FieldValidationException("name", "El nombre del ingreso que ha ingresado ya está en uso. Por favor, ingresa uno diferente.");
         }
+
+        // If it has a tax, validate and add it.
+        Tax tax = null;
+        if (income.getTax() != null) {
+            var taxExists = taxRepository.findByIdAndUserId(income.getTax().getId(), currentUser.getId());
+            if (taxExists.isEmpty()) {
+                throw new IllegalArgumentException("Impuesto no encontrado.");
+            }
+
+            tax = taxExists.get();
+        }
+
         //if (existingIncome.get().getType() == IncomeExpenceType.RECURRENCE){}
         existingIncome.get().setUpdatedAt(new Date());
         existingIncome.get().setName(income.getName());
@@ -230,6 +227,8 @@ public class IncomeRestController {
         existingIncome.get().setAmountType(income.getAmountType());
         existingIncome.get().setTax(income.getTax());
         existingIncome.get().setFrequency(income.getFrequency());
+        existingIncome.get().setTax(tax);
+        existingIncome.get().setTaxRelated(tax != null);
         return  incomeRepository.save(existingIncome.get());
     }
 
