@@ -118,6 +118,13 @@ public class SavingRestController {
             throw new FieldValidationException("amount", "El monto del ahorro no puede ser negativo y debe ser mayor a 0.");
         }
 
+        BigDecimal savingAmount = saving.getAmount();
+        BigDecimal currentBalance = account.getBalance();
+        if (currentBalance.compareTo(savingAmount) == -1) {
+            throw new IllegalArgumentException("El valor no puede ser mayor al balance general de la cuenta.");
+        }
+
+
         // Create and save the new saving
         Saving newSaving = new Saving();
         newSaving.setOwner(currentUser);
@@ -154,11 +161,6 @@ public class SavingRestController {
         // Create a saving allocation and a transaction if addTransaction is true
         if (saving.isAddTransaction()) {
 
-            BigDecimal savingAmount = saving.getAmount();
-            BigDecimal currentBalance = account.getBalance();
-            if (currentBalance.compareTo(savingAmount) == -1) {
-                throw new IllegalArgumentException("El valor no puede ser mayor al balance general de la cuenta.");
-            }
 
             Transaction transaction = new Transaction();
             transaction.setPreviousBalance(new BigDecimal(0));
@@ -210,6 +212,12 @@ public class SavingRestController {
         Optional<Saving> existingSaving = savingRepository.findById(saving.getId());
         if (existingSaving.isEmpty()) {
             throw new IllegalArgumentException("Ahorro no encontrado o no pertenece al usuario actual.");
+        }
+
+        BigDecimal savingAmount = saving.getAmount();
+        BigDecimal currentBalance = account.get().getBalance();
+        if (currentBalance.compareTo(savingAmount) == -1) {
+            throw new IllegalArgumentException("El valor no puede ser mayor al balance general de la cuenta.");
         }
 
         // If the saving type is UNIQUE, create a new saving allocation and transaction
