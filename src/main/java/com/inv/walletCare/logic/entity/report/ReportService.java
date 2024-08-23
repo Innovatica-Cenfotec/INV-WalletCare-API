@@ -74,14 +74,16 @@ public class ReportService {
         Map<String, Map<String, BigDecimal>> categoryMonthSums = new HashMap<>();
 
         // Get all recurrent expenses from user account
-        for (var recurrence : recurrences.stream().filter(r -> r.getExpense() != null).toList()) {
+        for (var recurrence : recurrences.stream()
+                .filter(r -> r.getExpense() != null).toList()) {
             Expense recurringExpense = recurrence.getExpense();
             recurringExpense.setCreatedAt(recurrence.getCreatedAt());
             expenses.add(recurringExpense);
         }
 
         // Get all unique expenses from user account
-        for (var transaction : transactions) {
+        for (var transaction : transactions.stream()
+                .filter(t -> t.getExpense() != null).toList()) {
             Expense expense = transaction.getExpense();
             expense.setCreatedAt(transaction.getCreatedAt());
             expenses.add(expense);
@@ -147,14 +149,16 @@ public class ReportService {
         Map<String, Map<String, BigDecimal>> categoryMonthSums = new HashMap<>();
 
         // Get all recurrent incomes from user account
-        for (var recurrence : recurrences.stream().filter(r -> r.getIncome() != null).toList()) {
+        for (var recurrence : recurrences.stream()
+                .filter(r -> r.getIncome() != null).toList()) {
             Income recurringIncome = recurrence.getIncome();
             recurringIncome.setCreatedAt(recurrence.getCreatedAt());
             incomes.add(recurringIncome);
         }
 
         // Get all unique incomes from user account
-        for (var transaction : transactions) {
+        for (var transaction : transactions.stream()
+                .filter(r -> r.getIncomeAllocation() != null).toList()) {
             Income income = transaction.getIncomeAllocation().getIncome();
             income.setCreatedAt(transaction.getCreatedAt());
             incomes.add(income);
