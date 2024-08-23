@@ -1,6 +1,5 @@
 package com.inv.walletCare.logic.entity.report;
 
-import com.inv.walletCare.logic.entity.account.AccountRepository;
 import com.inv.walletCare.logic.entity.expense.Expense;
 import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
 import com.inv.walletCare.logic.entity.expenseCategory.ExpenseCategory;
@@ -13,7 +12,6 @@ import com.inv.walletCare.logic.entity.recurrence.Recurrence;
 import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
 import com.inv.walletCare.logic.entity.transaction.Transaction;
 import com.inv.walletCare.logic.entity.transaction.TransactionRepository;
-import com.inv.walletCare.logic.entity.transaction.TransactionTypeEnum;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -36,33 +34,21 @@ public class ReportService {
      */
     private final TransactionRepository transactionRepository;
     /**
-     * Expense repository interface.
-     */
-    private final ExpenseRepository expenseRepository;
-    /**
-     * Income repository interface.
-     */
-    private final IncomeRepository incomeRepository;
-    /**
      * Goal repository interface.
      */
     private final GoalRepository goalRepository;
 
     /**
      * Service constructor in charge of initializing required repositories. Replace @autowire.
-     * @param expenseRepository Expense repository interface.
-     * @param incomeRepository Income repository interface.
+     * @param recurrenceRepository Recurrence repository interface.
+     * @param transactionRepository Transaction repository interface.
      * @param goalRepository Goal repository interface.
      */
     public ReportService(RecurrenceRepository recurrenceRepository,
                          TransactionRepository transactionRepository,
-                         ExpenseRepository expenseRepository,
-                         IncomeRepository incomeRepository,
                          GoalRepository goalRepository) {
         this.recurrenceRepository = recurrenceRepository;
         this.transactionRepository = transactionRepository;
-        this.expenseRepository = expenseRepository;
-        this.incomeRepository = incomeRepository;
         this.goalRepository = goalRepository;
     }
 
@@ -89,18 +75,21 @@ public class ReportService {
         List<Expense> expenses = new ArrayList<>();
         Map<String, Map<String, BigDecimal>> categoryMonthSums = new HashMap<>();
 
+        // Get all recurrent expenses from user account
         for (var recurrence : recurrences.stream().filter(r -> r.getExpense() != null).toList()) {
             Expense recurringExpense = recurrence.getExpense();
             recurringExpense.setCreatedAt(recurrence.getCreatedAt());
             expenses.add(recurringExpense);
         }
 
+        // Get all unique expenses from user account
         for (var transaction : transactions) {
             Expense expense = transaction.getExpense();
             expense.setCreatedAt(transaction.getCreatedAt());
             expenses.add(expense);
         }
 
+        // Filter expenses by year
         for (Expense expense : expenses) {
             LocalDate expenseDate = convertToLocalDateViaInstant(expense.getCreatedAt());
             if (expenseDate.getYear() == year) {
@@ -108,12 +97,14 @@ public class ReportService {
                         .getDisplayName(TextStyle.SHORT, Locale.ENGLISH).toLowerCase();
                 ExpenseCategory category = expense.getExpenseCategory();
 
+                // Set "uncategorized" for missing or deleted categories
                 if (category == null || category.getDeleted()) {
                     ExpenseCategory uncategorized = new ExpenseCategory();
                     uncategorized.setName("uncategorized");
                     category = uncategorized;
                 }
 
+                // Sum expenses by category
                 categoryMonthSums.putIfAbsent(category.getName(), new HashMap<>());
                 Map<String, BigDecimal> monthSums = categoryMonthSums.get(category.getName());
 
@@ -157,25 +148,30 @@ public class ReportService {
         List<Income> incomes = new ArrayList<>();
         Map<String, Map<String, BigDecimal>> categoryMonthSums = new HashMap<>();
 
+        // Get all recurrent incomes from user account
         for (var recurrence : recurrences.stream().filter(r -> r.getIncome() != null).toList()) {
             Income recurringIncome = recurrence.getIncome();
             recurringIncome.setCreatedAt(recurrence.getCreatedAt());
             incomes.add(recurringIncome);
         }
 
+        // Get all unique incomes from user account
         for (var transaction : transactions) {
             Income income = transaction.getIncomeAllocation().getIncome();
             income.setCreatedAt(transaction.getCreatedAt());
             incomes.add(income);
         }
 
+        // Filter incomes by year
         for (Income income : incomes) {
             LocalDate expenseDate = convertToLocalDateViaInstant(income.getCreatedAt());
             if (expenseDate.getYear() == year) {
                 String month = expenseDate.getMonth()
                         .getDisplayName(TextStyle.SHORT, Locale.ENGLISH).toLowerCase();
+                // Set "uncategorized" as default
                 String category = "uncategorized";
 
+                // Sum incomes by category
                 categoryMonthSums.putIfAbsent(category, new HashMap<>());
                 Map<String, BigDecimal> monthSums = categoryMonthSums.get(category);
 
