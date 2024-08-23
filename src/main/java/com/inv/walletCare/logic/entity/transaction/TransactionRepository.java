@@ -9,7 +9,6 @@ import java.util.Optional;
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
     /**
      * return all the transactions by account
-     *
      * @param accountId is the account id
      * @return returns all transactions for the account
      */

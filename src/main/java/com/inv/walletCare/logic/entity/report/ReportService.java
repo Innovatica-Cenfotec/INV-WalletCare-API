@@ -28,6 +28,14 @@ import java.util.*;
 @Service
 public class ReportService {
     /**
+     * Recurrence repository interface.
+     */
+    private final RecurrenceRepository recurrenceRepository;
+    /**
+     * Transaction repository interface.
+     */
+    private final TransactionRepository transactionRepository;
+    /**
      * Expense repository interface.
      */
     private final ExpenseRepository expenseRepository;
@@ -46,8 +54,13 @@ public class ReportService {
      * @param incomeRepository Income repository interface.
      * @param goalRepository Goal repository interface.
      */
-    public ReportService(ExpenseRepository expenseRepository, IncomeRepository incomeRepository,
+    public ReportService(RecurrenceRepository recurrenceRepository,
+                         TransactionRepository transactionRepository,
+                         ExpenseRepository expenseRepository,
+                         IncomeRepository incomeRepository,
                          GoalRepository goalRepository) {
+        this.recurrenceRepository = recurrenceRepository;
+        this.transactionRepository = transactionRepository;
         this.expenseRepository = expenseRepository;
         this.incomeRepository = incomeRepository;
         this.goalRepository = goalRepository;
@@ -71,8 +84,22 @@ public class ReportService {
      * @return List of BarchartDTO with the sum sorted by month and category.
      */
     public List<BarchartDTO> getYearlyExpenseByCategoryReport(int year, long userId) {
-        List<Expense> expenses = expenseRepository.findAllNotTemplatesByUserId(userId);
+        List<Recurrence> recurrences = recurrenceRepository.findAllByOwner(userId).get();
+        List<Transaction> transactions = transactionRepository.findAllExpensesByOwner(userId).get();
+        List<Expense> expenses = new ArrayList<>();
         Map<String, Map<String, BigDecimal>> categoryMonthSums = new HashMap<>();
+
+        for (var recurrence : recurrences.stream().filter(r -> r.getExpense() != null).toList()) {
+            Expense recurringExpense = recurrence.getExpense();
+            recurringExpense.setCreatedAt(recurrence.getCreatedAt());
+            expenses.add(recurringExpense);
+        }
+
+        for (var transaction : transactions) {
+            Expense expense = transaction.getExpense();
+            expense.setCreatedAt(transaction.getCreatedAt());
+            expenses.add(expense);
+        }
 
         for (Expense expense : expenses) {
             LocalDate expenseDate = convertToLocalDateViaInstant(expense.getCreatedAt());
@@ -81,7 +108,7 @@ public class ReportService {
                         .getDisplayName(TextStyle.SHORT, Locale.ENGLISH).toLowerCase();
                 ExpenseCategory category = expense.getExpenseCategory();
 
-                if (category == null) {
+                if (category == null || category.getDeleted()) {
                     ExpenseCategory uncategorized = new ExpenseCategory();
                     uncategorized.setName("uncategorized");
                     category = uncategorized;
@@ -124,8 +151,23 @@ public class ReportService {
      * @return List of BarchartDTO with the sum sorted by month and category.
      */
     public List<BarchartDTO> getYearlyIncomeByCategoryReport(int year, long userId) {
-        List<Income> incomes = incomeRepository.findAllNotTemplatesByUserId(userId);
+        List<Recurrence> recurrences = recurrenceRepository.findAllByOwner(userId).get();
+        List<Transaction> transactions = transactionRepository.findAllIncomesByOwner(userId).get();
+
+        List<Income> incomes = new ArrayList<>();
         Map<String, Map<String, BigDecimal>> categoryMonthSums = new HashMap<>();
+
+        for (var recurrence : recurrences.stream().filter(r -> r.getIncome() != null).toList()) {
+            Income recurringIncome = recurrence.getIncome();
+            recurringIncome.setCreatedAt(recurrence.getCreatedAt());
+            incomes.add(recurringIncome);
+        }
+
+        for (var transaction : transactions) {
+            Income income = transaction.getIncomeAllocation().getIncome();
+            income.setCreatedAt(transaction.getCreatedAt());
+            incomes.add(income);
+        }
 
         for (Income income : incomes) {
             LocalDate expenseDate = convertToLocalDateViaInstant(income.getCreatedAt());
