@@ -1,13 +1,11 @@
 package com.inv.walletCare.logic.entity.report;
 
 import com.inv.walletCare.logic.entity.expense.Expense;
-import com.inv.walletCare.logic.entity.expense.ExpenseRepository;
 import com.inv.walletCare.logic.entity.expenseCategory.ExpenseCategory;
 import com.inv.walletCare.logic.entity.goal.Goal;
 import com.inv.walletCare.logic.entity.goal.GoalRepository;
 import com.inv.walletCare.logic.entity.goal.GoalStatusEnum;
 import com.inv.walletCare.logic.entity.income.Income;
-import com.inv.walletCare.logic.entity.income.IncomeRepository;
 import com.inv.walletCare.logic.entity.recurrence.Recurrence;
 import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
 import com.inv.walletCare.logic.entity.transaction.Transaction;
