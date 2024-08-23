@@ -129,7 +129,7 @@ public class SavingRestController {
         newSaving.setCreatedAt(new Date());
         newSaving.setUpdatedAt(new Date());
         newSaving.setDeleted(false);
-        newSaving.setBalance(BigDecimal.valueOf(0));
+        newSaving.setBalance(BigDecimal.ZERO);
 
 
         if (saving.getType() == SavingTypeEnum.RECURRENCE) {

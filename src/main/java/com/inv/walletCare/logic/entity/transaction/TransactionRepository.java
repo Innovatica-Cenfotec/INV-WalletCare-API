@@ -9,7 +9,6 @@ import java.util.Optional;
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
     /**
      * return all the transactions by account
-     *
      * @param accountId is the account id
      * @return returns all transactions for the account
      */
@@ -22,9 +21,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     @Query("SELECT u FROM Transaction u WHERE u.owner.id = ?1 AND u.account.id = ?2")
     Optional<List<Optional<Transaction>>> findAllbyOwnerAndAccountId(Long ownerId, Long accountId);
 
-    @Query("SELECT u FROM Transaction u WHERE u.owner.id = ?1 AND u.type = 'EXPENSE'")
+    @Query("SELECT u FROM Transaction u WHERE u.owner.id = ?1 AND u.type = 'EXPENSE' AND u.isDeleted = false")
     Optional<List<Transaction>> findAllExpensesByOwner(Long ownerId);
 
-    @Query("SELECT u FROM Transaction u WHERE u.owner.id = ?1 AND u.type = 'INCOME'")
+    @Query("SELECT u FROM Transaction u WHERE u.owner.id = ?1 AND u.type = 'INCOME' AND u.isDeleted = false")
     Optional<List<Transaction>> findAllIncomesByOwner(Long ownerId);
 }
