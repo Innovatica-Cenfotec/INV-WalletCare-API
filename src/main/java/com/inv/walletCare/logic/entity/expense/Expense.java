@@ -7,7 +7,7 @@ import com.inv.walletCare.logic.entity.IncomeExpenceType;
 import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.tax.Tax;
 import com.inv.walletCare.logic.entity.user.User;
-import com.inv.walletCare.logic.expenseCategory.ExpenseCategory;
+import com.inv.walletCare.logic.entity.expenseCategory.ExpenseCategory;
 import com.inv.walletCare.logic.validation.OnCreate;
 import com.inv.walletCare.logic.validation.OnUpdate;
 import jakarta.persistence.*;
@@ -31,14 +31,17 @@ public class Expense {
     private Long id;
 
     /**
-     * Owner of the income.
+     * Owner of the expense.
      */
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "owner_id", referencedColumnName = "id", nullable = false)
     private User owner;
 
+    /**
+     * Account of the expense.
+     */
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "account_id", referencedColumnName = "id", nullable = false)
+    @JoinColumn(name = "account_id", referencedColumnName = "id")
     private Account account;
 
     /**
@@ -49,7 +52,7 @@ public class Expense {
     private ExpenseCategory expenseCategory;
 
     /**
-     * Name of the tax
+     * Name of the expense
      */
     @Column(name = "name", length = 100, nullable = false)
     @NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido")
@@ -60,7 +63,7 @@ public class Expense {
     private String name;
 
     /**
-     * Description of the tax.
+     * Description of the expense.
      */
     @Column(name = "description", length = 255)
     @Size(groups = {OnCreate.class, OnUpdate.class }, max = 255,
@@ -87,7 +90,7 @@ public class Expense {
      */
     @Column(name = "is_template", nullable = false)
     @NotNull(groups = OnCreate.class, message = "Debe indicar si el gasto es una plantilla")
-    @JsonProperty(access = JsonProperty.Access.AUTO)
+    @JsonProperty(access = JsonProperty.Access.AUTO )
     private boolean isTemplate;
 
     /**
@@ -118,7 +121,6 @@ public class Expense {
     @NotNull(groups = {OnCreate.class, OnUpdate.class },
             message = "Debe indicar si el gasto es relevante para la declaración de impuestos")
     private boolean isTaxRelated;
-
 
     /**
      * Tax associated with the expense.
@@ -158,6 +160,9 @@ public class Expense {
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private boolean addTransaction;
 
+
+    // GET AND SETTERS ----------------------------------------------------------------
+
     public @NegativeOrZero(groups = OnUpdate.class, message = "El ID es requerido para actualizar un gasto") Long getId() {
         return id;
     }
@@ -172,6 +177,14 @@ public class Expense {
 
     public void setOwner(User owner) {
         this.owner = owner;
+    }
+
+    public Account getAccount() {
+        return account;
+    }
+
+    public void setAccount(Account account) {
+        this.account = account;
     }
 
     public ExpenseCategory getExpenseCategory() {
@@ -204,11 +217,11 @@ public class Expense {
         this.description = description;
     }
 
-    public @Min(groups = {OnCreate.class, OnUpdate.class}, value = 0, message = "El monto del ingreso debe ser mayor a 0") BigDecimal getAmount() {
+    public @Min(groups = {OnCreate.class, OnUpdate.class}, value = 0, message = "El monto del gasto debe ser mayor a 0") BigDecimal getAmount() {
         return amount;
     }
 
-    public void setAmount(@Min(groups = {OnCreate.class, OnUpdate.class}, value = 0, message = "El monto del ingreso debe ser mayor a 0") BigDecimal amount) {
+    public void setAmount(@Min(groups = {OnCreate.class, OnUpdate.class}, value = 0, message = "El monto del gasto debe ser mayor a 0") BigDecimal amount) {
         this.amount = amount;
     }
 
@@ -220,7 +233,8 @@ public class Expense {
         this.amountType = amountType;
     }
 
-    public @NotNull(groups = OnCreate.class, message = "Debe indicar si el gasto es una plantilla") boolean isTemplate() {
+    @NotNull(groups = OnCreate.class, message = "Debe indicar si el gasto es una plantilla")
+    public boolean isTemplate() {
         return isTemplate;
     }
 
@@ -252,8 +266,9 @@ public class Expense {
         this.scheduledDay = scheduledDay;
     }
 
-    public @NotNull(groups = {OnCreate.class, OnUpdate.class},
-            message = "Debe indicar si el gasto es relevante para la declaración de impuestos") boolean isTaxRelated() {
+    @NotNull(groups = {OnCreate.class, OnUpdate.class},
+            message = "Debe indicar si el gasto es relevante para la declaración de impuestos")
+    public boolean isTaxRelated() {
         return isTaxRelated;
     }
 
@@ -294,24 +309,12 @@ public class Expense {
         this.deletedAt = deletedAt;
     }
 
-    public boolean getDeleted() {
+    public boolean isDeleted() {
         return isDeleted;
     }
 
     public void setDeleted(boolean deleted) {
         isDeleted = deleted;
-    }
-
-    public Account getAccount() {
-        return account;
-    }
-
-    public void setAccount(Account account) {
-        this.account = account;
-    }
-
-    public boolean isDeleted() {
-        return isDeleted;
     }
 
     public boolean isAddTransaction() {

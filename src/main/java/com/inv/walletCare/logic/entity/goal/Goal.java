@@ -8,8 +8,6 @@ import com.inv.walletCare.logic.validation.OnUpdate;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NegativeOrZero;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -39,11 +37,11 @@ public class Goal {
      * Account associated with the goal.
      */
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "account_id")
+    @JoinColumn(name = "account_id" , referencedColumnName = "id", nullable = true)
     private Account account;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "saving_id", referencedColumnName = "id")
+    @JoinColumn(name = "saving_id", referencedColumnName = "id" , nullable = true)
     private Saving saving;
 
     /**
@@ -54,20 +52,19 @@ public class Goal {
             message = "El nombre de la meta es requerido")
     private String name;
 
-    @Column(name = "description", length = 255)
-    @Size(groups = {OnCreate.class, OnUpdate.class }, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "recommendation", length = 255)
-    @Size(groups = {OnCreate.class, OnUpdate.class }, max = 255,
-            message = "La recomendación debe tener menos de 255 caracteres")
+    @Column(name = "recommendation", columnDefinition = "TEXT")
     private String recommendation;
 
     @Column(name = "type", length = 50)
     @Enumerated(EnumType.STRING)
     @NotNull(groups = {OnCreate.class, OnUpdate.class }, message = "El tipo de meta es requerido")
     private GoalTypeEnum type;
+
+    @Column(name = "status", length = 50)
+    private GoalStatusEnum status;
 
     @Column(name = "target_amount")
     private BigDecimal targetAmount;
@@ -77,9 +74,6 @@ public class Goal {
 
     @Column(name = "target_date")
     private Date targetDate;
-
-    @Column(name = "is_accepted")
-    private boolean isAccepted;
 
     @Column(name = "created_at")
     private Date createdAt;
@@ -139,23 +133,19 @@ public class Goal {
         this.name = name;
     }
 
-    public @Size(groups = {OnCreate.class, OnUpdate.class}, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres") String getDescription() {
+    public String getDescription() {
         return description;
     }
 
-    public void setDescription(@Size(groups = {OnCreate.class, OnUpdate.class}, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres") String description) {
+    public void setDescription(String description) {
         this.description = description;
     }
 
-    public @Size(groups = {OnCreate.class, OnUpdate.class}, max = 255,
-            message = "La recomendación debe tener menos de 255 caracteres") String getRecommendation() {
+    public String getRecommendation() {
         return recommendation;
     }
 
-    public void setRecommendation(@Size(groups = {OnCreate.class, OnUpdate.class}, max = 255,
-            message = "La recomendación debe tener menos de 255 caracteres") String recommendation) {
+    public void setRecommendation(String recommendation) {
         this.recommendation = recommendation;
     }
 
@@ -191,14 +181,6 @@ public class Goal {
         this.targetDate = targetDate;
     }
 
-    public boolean isAccepted() {
-        return isAccepted;
-    }
-
-    public void setAccepted(boolean accepted) {
-        isAccepted = accepted;
-    }
-
     public Date getCreatedAt() {
         return createdAt;
     }
@@ -229,5 +211,13 @@ public class Goal {
 
     public void setDeleted(boolean deleted) {
         isDeleted = deleted;
+    }
+
+    public GoalStatusEnum getStatus() {
+        return status;
+    }
+
+    public void setStatus(GoalStatusEnum status) {
+        this.status = status;
     }
 }

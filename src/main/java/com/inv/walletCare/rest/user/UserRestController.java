@@ -9,6 +9,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -44,6 +45,7 @@ public class UserRestController {
     @PostMapping
     public User addUser(@RequestBody User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setEnabled(true);
         return userRepository.save(user);
     }
 
@@ -72,7 +74,7 @@ public class UserRestController {
     /**
      * Updates an existing user.
      *
-     * @param id the ID of the user to update.
+     * @param id   the ID of the user to update.
      * @param user the new user data.
      * @return the updated user.
      */
@@ -83,6 +85,7 @@ public class UserRestController {
                     existingUser.setName(user.getName());
                     existingUser.setLastname(user.getLastname());
                     existingUser.setEmail(user.getEmail());
+                    existingUser.setEnabled(user.isEnabled());
                     return userRepository.save(existingUser);
                 })
                 .orElseGet(() -> {
@@ -116,7 +119,7 @@ public class UserRestController {
     /**
      * Updates the authenticated user's information.
      *
-     * @param id the ID of the user to update.
+     * @param id   the ID of the user to update.
      * @param user the new user data.
      * @return the updated user.
      */
@@ -132,5 +135,26 @@ public class UserRestController {
                     return userRepository.save(existingUser);
                 })
                 .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    @GetMapping("/new-users")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public int[] getNewUsersThisYear() {
+
+        int[] countUsers = new int[12];
+
+        for (var user : userRepository.findAll()) {
+            if (user.getCreatedAt().getYear() == new Date().getYear()) {
+                for (int i = 0; i <= 11; i++) {
+                    //Month validations
+                    if (user.getCreatedAt().getMonth() == i) {
+                        countUsers[i] = countUsers[i] + 1;
+                    }
+
+                }
+            }
+        }
+
+        return countUsers;
     }
 }

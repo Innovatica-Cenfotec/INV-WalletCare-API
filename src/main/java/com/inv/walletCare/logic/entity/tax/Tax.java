@@ -38,9 +38,9 @@ public class Tax {
      */
     @Column(name = "name", length = 50, nullable = false)
     @NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido")
-    @Size(groups = {OnCreate.class, OnUpdate.class }, min = 4, max = 50,
-            message = "El nombre solo puede tener entre 4 y 50 caracteres")
-    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "^[a-zA-Z ]+$",
+    @Size(groups = {OnCreate.class, OnUpdate.class }, min = 4, max = 100,
+            message = "El nombre solo puede tener entre 4 y 100 caracteres")
+    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
             message = "El nombre solo puede contener letras y espacios")
     private String name;
 
@@ -50,8 +50,6 @@ public class Tax {
     @Column(name = "description", length = 255)
     @Size(groups = {OnCreate.class, OnUpdate.class }, max = 255,
             message = "La descripción debe tener menos de 255 caracteres")
-    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "^[a-zA-Z0-9 ]+$",
-            message = "La descripción solo puede contener letras, números y espacios")
     private String description;
 
     /**
@@ -102,27 +100,25 @@ public class Tax {
         this.owner = owner;
     }
 
-    public @NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 50,
-            message = "El nombre solo puede tener entre 4 y 50 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z ]+$",
+    public @NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 100,
+            message = "El nombre solo puede tener entre 4 y 100 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
             message = "El nombre solo puede contener letras y espacios") String getName() {
         return name;
     }
 
-    public void setName(@NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 50,
-            message = "El nombre solo puede tener entre 4 y 50 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z ]+$",
+    public void setName(@NotNull(groups = {OnUpdate.class}, message = "El nombre es requerido") @Size(groups = {OnCreate.class, OnUpdate.class}, min = 4, max = 100,
+            message = "El nombre solo puede tener entre 4 y 100 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
             message = "El nombre solo puede contener letras y espacios") String name) {
         this.name = name;
     }
 
     public @Size(groups = {OnCreate.class, OnUpdate.class}, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z0-9 ]+$",
-            message = "La descripción solo puede contener letras, números y espacios") String getDescription() {
+            message = "La descripción debe tener menos de 255 caracteres") String getDescription() {
         return description;
     }
 
     public void setDescription(@Size(groups = {OnCreate.class, OnUpdate.class}, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z0-9 ]+$",
-            message = "La descripción solo puede contener letras, números y espacios") String description) {
+            message = "La descripción debe tener menos de 255 caracteres") String description) {
         this.description = description;
     }
 

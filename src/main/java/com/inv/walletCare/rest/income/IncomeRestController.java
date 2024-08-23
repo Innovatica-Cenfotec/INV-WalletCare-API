@@ -4,12 +4,15 @@ import com.inv.walletCare.logic.entity.FrequencyTypeEnum;
 import com.inv.walletCare.logic.entity.IncomeExpenceType;
 import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.account.AccountRepository;
+import com.inv.walletCare.logic.entity.expense.Expense;
 import com.inv.walletCare.logic.entity.income.Income;
 import com.inv.walletCare.logic.entity.income.IncomeRepository;
 import com.inv.walletCare.logic.entity.incomeAllocation.IncomeAllocation;
 import com.inv.walletCare.logic.entity.incomeAllocation.IncomeAllocationRepository;
 import com.inv.walletCare.logic.entity.recurrence.Recurrence;
 import com.inv.walletCare.logic.entity.recurrence.RecurrenceRepository;
+import com.inv.walletCare.logic.entity.report.BarchartDTO;
+import com.inv.walletCare.logic.entity.report.ReportService;
 import com.inv.walletCare.logic.entity.tax.Tax;
 import com.inv.walletCare.logic.entity.tax.TaxRepository;
 import com.inv.walletCare.logic.entity.transaction.Transaction;
@@ -19,7 +22,6 @@ import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.exceptions.FieldValidationException;
 import com.inv.walletCare.logic.validation.OnCreate;
 import com.inv.walletCare.logic.validation.OnUpdate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
@@ -34,29 +36,41 @@ import java.util.Optional;
 @RequestMapping("/incomes")
 public class IncomeRestController {
 
-    @Autowired
-    private IncomeRepository incomeRepository;
+    private final IncomeRepository incomeRepository;
 
-    @Autowired
-    private AccountRepository accountRepository;
+    private final AccountRepository accountRepository;
 
-    @Autowired
-    private TaxRepository taxRepository;
+    private final TaxRepository taxRepository;
 
-    @Autowired
-    private TransactionService transactionService;
+    private final TransactionService transactionService;
 
-    @Autowired
-    private IncomeAllocationRepository incomeAllocationRepository;
+    private final IncomeAllocationRepository incomeAllocationRepository;
 
-    @Autowired
-    private RecurrenceRepository recurrenceRepository;
+    private final RecurrenceRepository recurrenceRepository;
+
+    private final ReportService reportService;
+
+    public IncomeRestController(IncomeRepository incomeRepository,
+                                AccountRepository accountRepository,
+                                TaxRepository taxRepository,
+                                TransactionService transactionService,
+                                IncomeAllocationRepository incomeAllocationRepository,
+                                RecurrenceRepository recurrenceRepository,
+                                ReportService reportService) {
+        this.incomeRepository = incomeRepository;
+        this.accountRepository = accountRepository;
+        this.taxRepository = taxRepository;
+        this.transactionService = transactionService;
+        this.incomeAllocationRepository = incomeAllocationRepository;
+        this.recurrenceRepository = recurrenceRepository;
+        this.reportService = reportService;
+    }
 
     @GetMapping
     public List<Income> getIncomes() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
-        return incomeRepository.findAllByUserId(currentUser.getId());
+        return incomeRepository.findAllByOwnerId(currentUser.getId());
     }
 
     @PostMapping
@@ -65,53 +79,40 @@ public class IncomeRestController {
         User currentUser = (User) authentication.getPrincipal();
 
         // Validate that the income name is unique for the user
-        Optional<Income> existingIncome = incomeRepository.findByNameAndOwnerId(income.getName(), currentUser.getId());
-        if (existingIncome.isPresent()) {
+        Optional<Income> existingIncome = incomeRepository.findByNameAndOwnerIdAAndTemplate(income.getName(), currentUser.getId());
+        if (existingIncome.isPresent() && income.isTemplate()) {
             throw new FieldValidationException("name",
                     "El nombre del ingreso que ha ingresado ya está en uso. Por favor, ingresa uno diferente.");
         }
 
-        if (income.isTaxRelated()) {
-            // Validate that the tax IDs are valid
-            Optional<Tax> tax = taxRepository.findById(income.getTax().getId());
-            if (tax.isEmpty()) {
-                throw new FieldValidationException("tax",
-                        "El impuesto es requerido para los ingresos relacionados con impuestos.");
+        // If it has a tax, validate and add it.
+        Tax tax = null;
+        if (income.getTax() != null) {
+            var taxExists = taxRepository.findByIdAndUserId(income.getTax().getId(), currentUser.getId());
+            if (taxExists.isEmpty()) {
+                throw new IllegalArgumentException("Impuesto no encontrado.");
             }
 
-            // Validate that the tax belongs to the current user
-            if (tax.get().getOwner().getId() != currentUser.getId()) {
-                throw new FieldValidationException("tax",
-                        "El impuesto con el ID " + income.getTax().getId()
-                                + " no existe o no pertenece al usuario actual.");
-            }
-
-            if (income.getFrequency() == null) {
-                throw new FieldValidationException("frequency",
-                        "La frecuencia es requerida para los ingresos relacionados con impuestos.");
-            }
-
-            if (income.getFrequency() == FrequencyTypeEnum.OTHER
-                    && income.getScheduledDay() <= 1 || income.getScheduledDay() >= 31) {
-                throw new FieldValidationException("scheduledDay",
-                        "El día programado es requerido para los ingresos relacionados con impuestos.");
-            }
+            tax = taxExists.get();
         }
 
         Income newIncome = new Income();
         newIncome.setName(income.getName());
         newIncome.setAmount(income.getAmount());
+        newIncome.setDescription(income.getDescription());
         newIncome.setOwner(currentUser);
         newIncome.setTemplate(income.isTemplate());
         newIncome.setAmountType(income.getAmountType());
         newIncome.setFrequency(income.getFrequency());
         newIncome.setScheduledDay(income.getScheduledDay());
         newIncome.setTaxRelated(income.isTaxRelated());
-        newIncome.setTax(income.getTax());
+        newIncome.setTax(tax);
+        newIncome.setTaxRelated(tax != null);
         newIncome.setCreatedAt(new Date());
         newIncome.setUpdatedAt(new Date());
         newIncome.setDeleted(false);
         newIncome.setType(income.getType());
+        newIncome.setDescription(income.getDescription());
         var incomeCreated = incomeRepository.save(newIncome);
 
         if (income.isAddTransaction()){
@@ -120,18 +121,18 @@ public class IncomeRestController {
                 throw new IllegalArgumentException("Cuenta no encontrada o no pertenece al usuario actual.");
             }
 
-            if (incomeCreated.getType().equals(IncomeExpenceType.UNIQUE)) {
-                // Associate the income with the account
-                IncomeAllocation incomeAllocation = new IncomeAllocation();
-                incomeAllocation.setAccount(account.get());
-                incomeAllocation.setIncome(newIncome);
-                incomeAllocation.setOwner(currentUser);
-                incomeAllocation.setPercentage(new BigDecimal(100));
-                incomeAllocation.setCreatedAt(new Date());
-                incomeAllocation.setUpdatedAt(new Date());
-                incomeAllocation.setDeleted(false);
-                var incomeAllocationCreated = incomeAllocationRepository.save(incomeAllocation);
+            // Associate the income with the account
+            IncomeAllocation incomeAllocation = new IncomeAllocation();
+            incomeAllocation.setAccount(account.get());
+            incomeAllocation.setIncome(newIncome);
+            incomeAllocation.setOwner(currentUser);
+            incomeAllocation.setPercentage(new BigDecimal(100));
+            incomeAllocation.setCreatedAt(new Date());
+            incomeAllocation.setUpdatedAt(new Date());
+            incomeAllocation.setDeleted(false);
+            var incomeAllocationCreated = incomeAllocationRepository.save(incomeAllocation);
 
+            if (incomeCreated.getType().equals(IncomeExpenceType.UNIQUE)) {
                 // Create a transaction for the income
                 var tran = new Transaction();
                 tran.setAmount(newIncome.getAmount());
@@ -183,18 +184,41 @@ public class IncomeRestController {
         return income.get();
     }
 
-    @PutMapping ("/{id}")
-    public Income updateIncome(@Validated(OnUpdate.class)@PathVariable Long id,@RequestBody Income income){
-        Authentication authentication=SecurityContextHolder.getContext().getAuthentication();
-        User currentUser=(User) authentication.getPrincipal();
-        Optional<Income>existingIncome=incomeRepository.findByIdAndUserId(id,currentUser.getId());
-        if (existingIncome.isEmpty()){
+    /**
+     * Get all expenses with isTemplate = true created by logged user.
+     * @return List of expenses templates created by logged user.
+     */
+    @GetMapping("/templates")
+    public List<Income> getExpenseTemplatesByUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+        return incomeRepository.findAllTemplatesByUserId(user.getId()).get();
+    }
+
+    @PutMapping("/{id}")
+    public Income updateIncome(@Validated(OnUpdate.class) @PathVariable Long id, @RequestBody Income income) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+        Optional<Income> existingIncome = incomeRepository.findByIdAndUserId(id, currentUser.getId());
+        if (existingIncome.isEmpty()) {
             throw new IllegalArgumentException("El ingreso no se encontró o no pertenece al usuario actual");
         }
-        var existingIncomeName = incomeRepository.findByNameAndOwnerId(income.getName(), currentUser.getId());
-        if (existingIncomeName.isPresent()&&existingIncome.get().getId()!=existingIncomeName.get().getId()){
-            throw new FieldValidationException("name","El nombre de la cuenta que ha ingresado ya existe,porfavor utilice otro");
+        var existingIncomeName = incomeRepository.findByNameAndOwnerIdAAndTemplate(income.getName(), currentUser.getId());
+        if (existingIncomeName.isPresent() && existingIncome.get().getId() != existingIncomeName.get().getId()) {
+            throw new FieldValidationException("name", "El nombre del ingreso que ha ingresado ya está en uso. Por favor, ingresa uno diferente.");
         }
+
+        // If it has a tax, validate and add it.
+        Tax tax = null;
+        if (income.getTax() != null) {
+            var taxExists = taxRepository.findByIdAndUserId(income.getTax().getId(), currentUser.getId());
+            if (taxExists.isEmpty()) {
+                throw new IllegalArgumentException("Impuesto no encontrado.");
+            }
+
+            tax = taxExists.get();
+        }
+
         //if (existingIncome.get().getType() == IncomeExpenceType.RECURRENCE){}
         existingIncome.get().setUpdatedAt(new Date());
         existingIncome.get().setName(income.getName());
@@ -203,8 +227,22 @@ public class IncomeRestController {
         existingIncome.get().setAmountType(income.getAmountType());
         existingIncome.get().setTax(income.getTax());
         existingIncome.get().setFrequency(income.getFrequency());
+        existingIncome.get().setTax(tax);
+        existingIncome.get().setTaxRelated(tax != null);
         return  incomeRepository.save(existingIncome.get());
+    }
 
+    @DeleteMapping("/{id}")
+    public void deleteIncome(@PathVariable Long id){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+        Optional<Income> existingIncome = incomeRepository.findByIdAndUserId(id, currentUser.getId());
+        if (existingIncome.get().getOwner().getId()!=currentUser.getId()) {
+            throw new IllegalArgumentException("No eres el propietario de esta cuenta, no puedes eliminarla.");
+        }
+        existingIncome.get().setDeletedAt(new Date());
+        existingIncome.get().setDeleted(true);
+        existingIncome.get().setUpdatedAt(new Date());
     }
 
 
@@ -262,5 +300,16 @@ public class IncomeRestController {
             recurrence.setDeleted(false);
             recurrenceRepository.save(recurrence);
         }
+    }
+
+    /**
+     * Get a report of incomes sort by month and category created by logged user.
+     * @return List of BarchartDTO with the report of income.
+     */
+    @GetMapping("/report/by-category/{year}")
+    public List<BarchartDTO> getAnualAmountByCategory(@PathVariable int year) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+        return reportService.getYearlyIncomeByCategoryReport(year, user.getId());
     }
 }
