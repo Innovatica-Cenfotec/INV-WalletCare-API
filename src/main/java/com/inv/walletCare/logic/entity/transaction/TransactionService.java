@@ -1,5 +1,6 @@
 package com.inv.walletCare.logic.entity.transaction;
 
+import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.account.AccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -27,5 +28,26 @@ public class TransactionService {
             return accountRepository.save(existingAccount);
         });
         return transactionRepository.save(newTransaction);
+    }
+
+    /**
+     * This method transfers the transactions in case the account is eliminated or the users leave the shared account
+     * @param ownerId is the owner of the transactions
+     * @param accountId is the eliminated or leaved account id
+     */
+    public void transferTransactions(Long ownerId, Long accountId) {
+        var transactionsToTransfer = transactionRepository.findAllbyOwnerAndAccountId(ownerId, accountId);
+        var userAccounts = accountRepository.findAllByOwnerId(ownerId);
+        var mainAccount = userAccounts.get().stream().filter(Account::isDefault).findFirst().orElse(new Account());
+
+        //Transfer Transaction
+        for (var tran : transactionsToTransfer.get()) {
+            tran.map(updatedTran -> {
+                updatedTran.setAccount(mainAccount);
+                updatedTran.setDeleted(true);
+                updatedTran.setDescription("Histrial Transferido: {" + updatedTran.getDescription() + "}");
+                return transactionRepository.save(updatedTran);
+            });
+        }
     }
 }

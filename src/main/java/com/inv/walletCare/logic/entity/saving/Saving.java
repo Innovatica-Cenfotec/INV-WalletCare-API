@@ -1,14 +1,14 @@
 package com.inv.walletCare.logic.entity.saving;
 
+import com.inv.walletCare.logic.entity.FrequencyTypeEnum;
+import com.inv.walletCare.logic.entity.account.Account;
 import com.inv.walletCare.logic.entity.user.User;
 import com.inv.walletCare.logic.validation.OnCreate;
 import com.inv.walletCare.logic.validation.OnUpdate;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NegativeOrZero;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 /**
@@ -29,16 +29,16 @@ public class Saving {
      * Owner of the saving.
      */
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "owner_id", nullable = false)
+    @JoinColumn(name = "owner_id", referencedColumnName = "id", nullable = false)
     private User owner;
 
     /**
      * Name of the saving, e.g., "Vacation", "New Car", "Emergency Fund".
      */
-    @Column(name = "name", length = 50, nullable = false)
+    @Column(name = "name", length = 100, nullable = false)
     @NotNull(groups = {OnCreate.class, OnUpdate.class },
             message = "El nombre del ahorro es requerido")
-    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "^[a-zA-Z0-9 ]+$",
+    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
             message = "El nombre solo puede contener letras, números y espacios")
     private String name;
 
@@ -48,8 +48,6 @@ public class Saving {
     @Column(name = "description", length = 255)
     @Size(groups = {OnCreate.class, OnUpdate.class }, max = 255,
             message = "La descripción debe tener menos de 255 caracteres")
-    @Pattern(groups = {OnCreate.class, OnUpdate.class }, regexp = "^[a-zA-Z0-9 ]+$",
-            message = "La descripción solo puede contener letras, números y espacios")
     private String description;
 
     /**
@@ -57,6 +55,9 @@ public class Saving {
      */
     @Column(name = "created_at", nullable = false)
     private Date createdAt;
+
+    @Column(name="target_date", nullable = true)
+    private Date targetDate;
 
     /**
      * DateTIme when the saving was last updated.
@@ -76,6 +77,32 @@ public class Saving {
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted;
 
+    @Column(name = "frequency", length = 50)
+    @Enumerated(EnumType.STRING)
+    private FrequencyTypeEnum frequency;
+
+    @Column(name = "scheduled_day")
+    private short scheduledDay;
+
+    @Column(name = "type", length = 50)
+    @Enumerated(EnumType.STRING)
+    @NotNull(groups = OnCreate.class, message = "El tipo de ahorro es requerido")
+    private SavingTypeEnum type;
+
+    @Transient
+    private boolean addTransaction;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "account_id", referencedColumnName = "id")
+    private Account account;
+
+    @Column(name = "amount", nullable = false)
+    @Min(groups = {OnCreate.class, OnUpdate.class }, value = 0, message = "El monto del ahorro debe ser mayor a 0")
+    private BigDecimal amount;
+
+    @Column(name = "balance", nullable = false)
+    private BigDecimal balance;
+
     public @NegativeOrZero(groups = OnCreate.class, message = "El ID es requerido para actualizar un ahorro") Long getId() {
         return id;
     }
@@ -93,26 +120,24 @@ public class Saving {
     }
 
     public @NotNull(groups = {OnCreate.class, OnUpdate.class},
-            message = "El nombre del ahorro es requerido") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z0-9 ]+$",
+            message = "El nombre del ahorro es requerido") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
             message = "El nombre solo puede contener letras, números y espacios") String getName() {
         return name;
     }
 
     public void setName(@NotNull(groups = {OnCreate.class, OnUpdate.class},
-            message = "El nombre del ahorro es requerido") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z0-9 ]+$",
+            message = "El nombre del ahorro es requerido") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ 0-9]+",
             message = "El nombre solo puede contener letras, números y espacios") String name) {
         this.name = name;
     }
 
     public @Size(groups = {OnCreate.class, OnUpdate.class}, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z0-9 ]+$",
-            message = "La descripción solo puede contener letras, números y espacios") String getDescription() {
+            message = "La descripción debe tener menos de 255 caracteres") String getDescription() {
         return description;
     }
 
     public void setDescription(@Size(groups = {OnCreate.class, OnUpdate.class}, max = 255,
-            message = "La descripción debe tener menos de 255 caracteres") @Pattern(groups = {OnCreate.class, OnUpdate.class}, regexp = "^[a-zA-Z0-9 ]+$",
-            message = "La descripción solo puede contener letras, números y espacios") String description) {
+            message = "La descripción debe tener menos de 255 caracteres") String description) {
         this.description = description;
     }
 
@@ -146,5 +171,69 @@ public class Saving {
 
     public void setDeleted(Boolean deleted) {
         isDeleted = deleted;
+    }
+
+    public FrequencyTypeEnum getFrequency() {
+        return frequency;
+    }
+
+    public void setFrequency(FrequencyTypeEnum frequency) {
+        this.frequency = frequency;
+    }
+
+    public short getScheduledDay() {
+        return scheduledDay;
+    }
+
+    public void setScheduledDay(short scheduledDay) {
+        this.scheduledDay = scheduledDay;
+    }
+
+    public @NotNull(groups = OnCreate.class, message = "El tipo de ahorro es requerido") SavingTypeEnum getType() {
+        return type;
+    }
+
+    public void setType(@NotNull(groups = OnCreate.class, message = "El tipo de ahorro es requerido") SavingTypeEnum type) {
+        this.type = type;
+    }
+
+    public Date getTargetDate() {
+        return targetDate;
+    }
+
+    public void setTargetDate(Date targetDate) {
+        this.targetDate = targetDate;
+    }
+
+    public boolean isAddTransaction() {
+        return addTransaction;
+    }
+
+    public void setAddTransaction(boolean addTransaction) {
+        this.addTransaction = addTransaction;
+    }
+
+    public Account getAccount() {
+        return account;
+    }
+
+    public void setAccount(Account account) {
+        this.account = account;
+    }
+
+    public @Min(groups = {OnCreate.class, OnUpdate.class}, value = 0, message = "El monto del gasto debe ser mayor a 0") BigDecimal getAmount() {
+        return amount;
+    }
+  
+    public void setAmount(@Min(groups = {OnCreate.class, OnUpdate.class}, value = 0, message = "El monto del ahorro debe ser mayor a 0") BigDecimal amount) {
+        this.amount = amount;
+    }
+
+    public BigDecimal getBalance() {
+        return balance;
+    }
+
+    public void setBalance(BigDecimal balance) {
+        this.balance = balance;
     }
 }

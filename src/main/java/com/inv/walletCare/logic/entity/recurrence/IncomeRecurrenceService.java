@@ -52,7 +52,7 @@ public class IncomeRecurrenceService {
                 tran.setOwner(income.getOwner());
                 tran.setDescription("Ingreso recurrente: " + income.getName());
                 tran.setPreviousBalance(new BigDecimal(0));
-                tran.setType(TransactionTypeEnum.EXPENSE);
+                tran.setType(TransactionTypeEnum.INCOME);
                 tran.setExpense(null);
                 tran.setIncomeAllocation(incomeAllocation.get());
                 tran.setSavingAllocation(null);

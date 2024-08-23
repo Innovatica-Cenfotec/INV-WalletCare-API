@@ -3,8 +3,8 @@ package com.inv.walletCare.rest.transaction;
 import com.inv.walletCare.logic.entity.Response;
 import com.inv.walletCare.logic.entity.account.AccountRepository;
 import com.inv.walletCare.logic.entity.helpers.Helper;
-import com.inv.walletCare.logic.entity.tools.BalanceDTO;
-import com.inv.walletCare.logic.entity.tools.ToolsService;
+import com.inv.walletCare.logic.entity.tools.balance.BalanceDTO;
+import com.inv.walletCare.logic.entity.tools.balance.BalanceService;
 import com.inv.walletCare.logic.entity.transaction.Transaction;
 import com.inv.walletCare.logic.entity.transaction.TransactionRepository;
 import com.inv.walletCare.logic.entity.transaction.TransactionService;
@@ -15,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 
@@ -35,7 +36,7 @@ public class TransactionRestController {
     private AccountRepository accountRepository;
 
     @Autowired
-    private ToolsService toolsService;
+    private BalanceService balanceService;
 
     /**
      * Retrieves all the transaction by the accountId
@@ -47,6 +48,10 @@ public class TransactionRestController {
         return transactionRepository.findAllByAccountId(id).get();
     }
 
+    /**
+     * Retrieves all the transactions by it´s owner
+     * @return a list of transctions
+     */
     @GetMapping("/owner")
     public List<Transaction> getAllTransactionsByOwner(){
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -54,17 +59,50 @@ public class TransactionRestController {
         return transactionRepository.findAllbyOwner(currentUser.getId()).get();
     }
 
+    /**
+     * Retrieves the balances by account
+     * @param id is the account ID
+     * @return the calculations of balances by account
+     */
     @GetMapping("/balances-account/{id}")
     public BalanceDTO getBalancesCalcByAccount(@PathVariable Long id){
 
-        return toolsService.balancesCalculationsbyAccount(accountRepository.findById(id).get());
+        return balanceService.balancesCalculationsbyAccount(accountRepository.findById(id).get());
     }
 
+    /**
+     * Retrieves the balances by user
+     * @return the calculation of balances by user
+     */
     @GetMapping("/balances-user")
     public BalanceDTO getBalancesCalcByUser(){
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
-        return toolsService.balancesCalculationsbyUser(currentUser);
+        return balanceService.balancesCalculationsbyUser(currentUser);
+    }
+
+
+    /**
+     * Retrieves all balances in the current year by month
+     * @return A List of lists with the balances by month
+     */
+    @GetMapping("/balances-annually")
+    public List<List<BigDecimal>> getBalancesAnnually(){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+        return balanceService.annualBalancesByUser(currentUser);
+    }
+
+    /**
+     * Retrieves all balances in the current month by Day
+     * @return A List of lists with the balances by day
+     */
+    @GetMapping("/balances-monthly")
+    public List<List<Double>> monthlyBalancesByUser() throws Exception {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+
+        return balanceService.monthlyBalancesByUser(currentUser);
     }
 
     /**
@@ -101,4 +139,6 @@ public class TransactionRestController {
 
         return ResponseEntity.ok(new Response("Ok"));
     }
+
+
 }
